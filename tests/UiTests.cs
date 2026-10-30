@@ -101,6 +101,19 @@ class UiTests
                 times[i] = watch.Elapsed.TotalMilliseconds;
             }
             Check(((IDictionary)Get(form, "tileImages")).Count <= 48, "Long scrolling keeps the native bitmap cache bounded");
+            var gridNow = (RectangleF)Get(form, "gridRect");
+            int inView = ((IEnumerable)Get(form, "visible")).Cast<object>().Count(v => Get(v, "Achievement") != null && ((RectangleF)Get(v, "Bounds")).IntersectsWith(gridNow));
+            Check((int)Get(form, "tileCacheBudget") >= inView * 2, "Card cache budget covers twice the cards in view (fullscreen/ultrawide)");
+            RenderScroll(form, graphics, end);
+            int steady = (int)Get(form, "tileImageBuilds");
+            RenderScroll(form, graphics, end - 1);
+            Check((int)Get(form, "tileImageBuilds") == steady, "Repainting a scrolled view rebuilds no card");
+            float formScale = (float)Get(form, "scale");
+            var full = new RectangleF(0, 0, form.ClientSize.Width / formScale, form.ClientSize.Height / formScale);
+            graphics.ResetTransform(); graphics.ResetClip(); Call(form, "Render", graphics, full);
+            int layerBuilds = (int)Get(form, "layerBuilds");
+            graphics.ResetTransform(); graphics.ResetClip(); Call(form, "Render", graphics, full);
+            Check((int)Get(form, "layerBuilds") == layerBuilds, "Bars, tab track and banner overlay are reused between frames");
             var last = Widget(form, "tile:" + ((List<Achievement>)Call(form, "Filtered")).Last().Id);
             Check(((RectangleF)Get(last, "Bounds")).IntersectsWith(grid), "The complete catalog remains reachable by scrolling");
             Array.Sort(times);

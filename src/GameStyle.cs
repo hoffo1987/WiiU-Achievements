@@ -142,6 +142,92 @@ namespace WiiUAchievements
             }
         }
 
+        // ---- Owner UI art (assets/games/<game>/ui): gold wave corners, Triforce crest, parchment.
+        static readonly string[] cornerNames = { "ui/corner-top-left.png", "ui/corner-top-right.png", "ui/corner-bottom-left.png", "ui/corner-bottom-right.png" };
+        public bool HasUiArt { get { return Themed && Load(cornerNames[0]) != null; } }
+        // Art is resampled once per device size; frames then copy pixels 1:1, which keeps
+        // repaints of bars, banner and dialogs cheap even on ultrawide screens.
+        readonly Dictionary<string, Bitmap> scaled = new Dictionary<string, Bitmap>(StringComparer.Ordinal);
+        static float DeviceScale(Graphics g) { using (var m = g.Transform) return Math.Max(0.25f, (float)Math.Sqrt(m.Elements[0] * m.Elements[0] + m.Elements[1] * m.Elements[1])); }
+        Bitmap Scaled(string relative, int width, int height, float alpha)
+        {
+            string key = relative + "|" + width + "x" + height + "|" + (int)Math.Round(alpha * 20);
+            Bitmap bitmap;
+            if (scaled.TryGetValue(key, out bitmap)) return bitmap;
+            var source = Load(relative);
+            if (source == null || width < 1 || height < 1) return null;
+            if (scaled.Count >= 48) { foreach (var old in scaled.Values) old.Dispose(); scaled.Clear(); }
+            bitmap = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
+            using (var g = Graphics.FromImage(bitmap))
+            using (var a = new ImageAttributes())
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic; g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                a.SetWrapMode(WrapMode.TileFlipXY);
+                if (alpha < 1) a.SetColorMatrix(new ColorMatrix { Matrix33 = alpha });
+                g.DrawImage(source, new Rectangle(0, 0, width, height), 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, a);
+            }
+            scaled[key] = bitmap;
+            return bitmap;
+        }
+        void Blit(Graphics g, Bitmap bitmap, float x, float y, float scale)
+        {
+            var interpolation = g.InterpolationMode; var offset = g.PixelOffsetMode;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor; g.PixelOffsetMode = PixelOffsetMode.Half;
+            g.DrawImage(bitmap, x, y, bitmap.Width / scale, bitmap.Height / scale);
+            g.InterpolationMode = interpolation; g.PixelOffsetMode = offset;
+        }
+        // Corner pieces whose outer edges sit `outset` outside r; mask bits: 1 TL, 2 TR, 4 BL, 8 BR.
+        public void Corners(Graphics g, RectangleF r, float size, float outset) { Corners(g, r, size, outset, 15); }
+        public void Corners(Graphics g, RectangleF r, float size, float outset, int mask)
+        {
+            if (!Themed) return;
+            float scale = DeviceScale(g);
+            for (int i = 0; i < 4; i++)
+            {
+                var source = (mask & (1 << i)) != 0 ? Load(cornerNames[i]) : null;
+                if (source == null) continue;
+                float w = size, h = size * source.Height / source.Width;
+                var image = Scaled(cornerNames[i], (int)Math.Round(w * scale), (int)Math.Round(h * scale), 1);
+                float x = i % 2 == 0 ? r.X - outset : r.Right + outset - w, y = i < 2 ? r.Y - outset : r.Bottom + outset - h;
+                Blit(g, image, x, y, scale);
+            }
+        }
+        // The crest, with its gold rule centred on `rule`. Returns false without the art.
+        public bool Crest(Graphics g, PointF rule, float width, float alpha)
+        {
+            var source = Themed ? Load("ui/crest.png") : null;
+            if (source == null || alpha <= 0) return false;
+            float scale = DeviceScale(g), h = width * source.Height / source.Width;
+            var image = Scaled("ui/crest.png", (int)Math.Round(width * scale), (int)Math.Round(h * scale), alpha);
+            Blit(g, image, rule.X - width / 2, rule.Y - h * 0.767f, scale);
+            return true;
+        }
+        // Sail-cloth parchment laid over a surface at the given strength. The tile is pre-scaled
+        // to the device so the brush samples it 1:1.
+        const float ParchmentTile = 0.6f;
+        public void Parchment(Graphics g, GraphicsPath area, float alpha)
+        {
+            var source = Themed ? Load("ui/parchment.png") : null;
+            if (source == null || alpha <= 0) return;
+            float scale = DeviceScale(g);
+            int size = Math.Max(8, (int)Math.Round(source.Width * ParchmentTile * scale));
+            var texture = Scaled("ui/parchment.png", size, size, alpha);
+            var interpolation = g.InterpolationMode;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            using (var brush = new TextureBrush(texture, WrapMode.Tile))
+            {
+                brush.ScaleTransform(1 / scale, 1 / scale);
+                g.FillPath(brush, area);
+            }
+            g.InterpolationMode = interpolation;
+        }
+        public void Parchment(Graphics g, RectangleF r, float radius, float alpha)
+        {
+            if (!Themed || alpha <= 0) return;
+            using (var path = radius > 0 ? Theme.Round(r, radius) : Rect(r)) Parchment(g, path, alpha);
+        }
+        static GraphicsPath Rect(RectangleF r) { var p = new GraphicsPath(); p.AddRectangle(r); return p; }
+
         // ---- Banner video: the owner's Outset Island wallpaper (dawn, day, sunset, night).
         public VideoBanner OpenBannerVideo()
         {
@@ -285,30 +371,42 @@ namespace WiiUAchievements
         public void DecorateTopBar(Graphics g, float width, float height)
         {
             if (!Themed) return;
+            Parchment(g, new RectangleF(0, 0, width, height), 0, 0.45f);
             TrimLine(g, 0, width, height - 1.5f, 2.2f);
         }
         public void DecorateFooter(Graphics g, RectangleF r, float phase)
         {
             if (!Themed) return;
+            Parchment(g, r, 0, 0.45f);
             WaveBandCached(g, new RectangleF(r.X, r.Y - 9, r.Width, 11), phase, 1);
             TrimLine(g, r.X, r.Right, r.Y + 2.5f, 2.2f);
         }
-        public void DecorateCard(Graphics g, RectangleF r, float radius)
+        // Parchment card with a faint wave in the corner; earned gold/platinum cards get the gold corners.
+        public void DecorateCard(Graphics g, RectangleF r, float radius, bool ornate)
         {
             if (!Themed) return;
+            Parchment(g, r, radius, 0.5f);
             var state = g.Save();
             using (var clip = Theme.Round(r, radius)) g.SetClip(clip, CombineMode.Intersect);
             Wave(g, r.Right - 70, 64, r.Bottom - 15, r.Bottom + 2, false, 0.22f);
             Wave(g, r.Right - 34, 52, r.Bottom - 11, r.Bottom + 2, false, 0.3f);
             g.Restore(state);
+            if (ornate && HasUiArt) Corners(g, r, 24, 4);
         }
-        // Ornate border for dialogs and the settings sheet: gold rule, scroll crest, corner waves.
+        // Ornate border for dialogs and the settings sheet: gold rule, owner corners and crest
+        // (or drawn corner waves and scroll crest when the art is missing).
         public void DecoratePanel(Graphics g, RectangleF r, float radius, bool crest)
         {
             if (!Themed) return;
             using (var pen = new Pen(Outline, 4.2f)) using (var path = Theme.Round(Theme.Inflate(r, -3, -3), radius - 3)) g.DrawPath(pen, path);
             using (var b = new LinearGradientBrush(Theme.Inflate(r, 0, 1), Theme.Light(Trim, 0.35f), TrimDark, 90f))
             using (var pen = new Pen(b, 2.4f)) using (var path = Theme.Round(Theme.Inflate(r, -3, -3), radius - 3)) g.DrawPath(pen, path);
+            if (HasUiArt)
+            {
+                Corners(g, r, 64, 6);
+                if (crest) Crest(g, new PointF(r.X + r.Width / 2, r.Y + 3), Math.Min(320, r.Width * 0.6f), 1);
+                return;
+            }
             var state = g.Save();
             using (var clip = Theme.Round(Theme.Inflate(r, -5, -5), radius - 5)) g.SetClip(clip, CombineMode.Intersect);
             Wave(g, r.X - 6, 74, r.Bottom - 26, r.Bottom + 4, true, 0.9f);

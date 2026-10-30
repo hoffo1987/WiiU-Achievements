@@ -166,6 +166,7 @@ namespace WiiUAchievements
                 for (int i = 4; i >= 1; i--)
                     Theme.Stroke(g, Theme.Inflate(card, i * 2.6f, i * 2.6f), 22 + i * 2.6f, Color.FromArgb(halo / i + 6, glow), 3);
                 Theme.Fill(g, card, 22, style.CardTop, style.Themed ? style.CardBottom : Color.FromArgb(238, 243, 247));
+                style.Parchment(g, card, 22, 0.5f);
                 var medalCenter = new PointF(card.X + Panel / 2, card.Y + card.Height / 2);
                 using (var path = Theme.Round(card, 22))
                 {
@@ -219,6 +220,7 @@ namespace WiiUAchievements
                     g.Restore(state);
                 }
                 Theme.Stroke(g, Theme.Inflate(card, -0.5f, -0.5f), 22, Theme.Mix(tier, Color.White, 0.2f), 2f);
+                style.Corners(g, card, 34, 5);
 
                 if (turn >= 0.5f)
                 {

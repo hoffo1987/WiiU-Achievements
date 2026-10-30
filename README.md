@@ -1,5 +1,10 @@
 # Wii U Achievements — alpha 0.4
 
+**Prestazioni e decorazioni (30 ottobre 2026):** lo scorrimento a schermo intero
+su monitor ultrawide 3440×1440 passa da 120 ms a 8 ms per fotogramma, senza scatti.
+Angoli dorati, fregio con la Triforza e pergamena sono quelli forniti dal
+proprietario del progetto.
+
 **Tema Wind Waker e banner video (30 ottobre 2026):** tutta la sezione degli
 obiettivi di The Wind Waker HD è decorata nello stile delle cornici: barre color
 vela con filo d'oro, onde con la schiuma, schede pergamena, pulsanti crema e oro,

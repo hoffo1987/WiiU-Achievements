@@ -54,6 +54,7 @@ namespace WiiUAchievements
         // The Games catalog is a system screen and keeps the neutral style.
         GameStyle Style { get { return libraryOpen ? GameStyle.Neutral : GameStyle.For(selectedGame.Id); } }
         GameStyle backdropStyle;
+        int shownVideoFrame = -1;
         VideoBanner video;
         bool videoOpened;
         VideoBanner BannerVideo
@@ -98,10 +99,10 @@ namespace WiiUAchievements
             animation.Tick += Animate;
             Activated += delegate { Kick(); };
             Deactivate += delegate { Kick(); };
-            Resize += delegate { ClearTileImages(); Arrange(); PlaceFields(); Kick(); };
+            Resize += delegate { ClearTileImages(); ClearLayers(); Arrange(); PlaceFields(); Kick(); };
             Shown += delegate { introStart = (float)clock.Elapsed.TotalSeconds; Kick(); };
             try { Icon = MakeIcon(); } catch (Exception) { }
-            Disposed += delegate { animation.Dispose(); banner.Dispose(); CloseBannerVideo(); ClearTileImages(); if (backdrop != null) backdrop.Dispose(); measure.Dispose(); measureBitmap.Dispose(); };
+            Disposed += delegate { animation.Dispose(); banner.Dispose(); CloseBannerVideo(); ClearTileImages(); ClearLayers(); if (backdrop != null) backdrop.Dispose(); measure.Dispose(); measureBitmap.Dispose(); };
         }
         static Icon MakeIcon()
         {
@@ -300,21 +301,28 @@ namespace WiiUAchievements
         {
             float now = (float)clock.Elapsed.TotalSeconds, dt = Math.Max(0.001f, Math.Min(0.05f, now - lastFrame));
             lastFrame = now;
+            // Repaint only what moved: a whole-window repaint at ultrawide sizes costs several
+            // frames' budget. "busy" means the layout of overlapping layers is changing.
             bool busy = false;
+            var dirty = new List<RectangleF>();
             foreach (var w in widgets.Values)
             {
                 float hv = Theme.Approach(w.Hover, w == hovered && w.Enabled && w.Visible ? 1 : 0, dt, 16);
                 float pr = Theme.Approach(w.Press, w == pressed && w.Enabled ? 1 : 0, dt, 30);
-                if (hv != w.Hover || pr != w.Press) { w.Hover = hv; w.Press = pr; busy = true; }
+                if (hv != w.Hover || pr != w.Press)
+                {
+                    w.Hover = hv; w.Press = pr;
+                    if (w.Visible) dirty.Add(Theme.Inflate(w.Bounds, 24, 24));
+                }
                 if (w.Kind != Kind.Toggle || !w.Visible) continue;
                 float v = w.Value < 0 ? (w.Checked ? 1 : 0) : Theme.Approach(w.Value, w.Checked ? 1 : 0, dt, 14);
-                if (v != w.Value) { w.Value = v; busy = true; }
+                if (v != w.Value) { w.Value = v; dirty.Add(Theme.Inflate(w.Bounds, 8, 8)); }
             }
             float sheetBefore = sheet;
             busy |= Step(ref sheet, sheetTarget, dt / 0.32f);
             busy |= Step(ref drawer, drawerTarget, dt / 0.3f);
             busy |= Step(ref dialog, dialogTarget, dt / 0.34f);
-            if (dialog > 0 && detail != null && progress != null && progress.Contains(detail.Id)) busy = true;
+            if (dialog >= 1 && detail != null && progress != null && progress.Contains(detail.Id)) dirty.Add(Theme.Inflate(dialogRect, 44, 44));
             float s = Theme.Approach(scroll, scrollTarget, dt, 14);
             if (Math.Abs(s - scrollTarget) < 0.3f) s = scrollTarget;
             bool scrolled = s != scroll;
@@ -326,21 +334,22 @@ namespace WiiUAchievements
                 float nx = Theme.Approach(tabX, tab.Bounds.X, dt, 18), nw = Theme.Approach(tabW, tab.Bounds.Width, dt, 18);
                 if (Math.Abs(nx - tab.Bounds.X) < 0.3f) nx = tab.Bounds.X;
                 if (Math.Abs(nw - tab.Bounds.Width) < 0.3f) nw = tab.Bounds.Width;
-                if (nx != tabX || nw != tabW) { tabX = nx; tabW = nw; busy = true; }
+                if (nx != tabX || nw != tabW) { tabX = nx; tabW = nw; dirty.Add(new RectangleF(0, bannerRect.Bottom, W, TabsH + 24)); }
             }
             float ratio = ActiveCount == 0 ? 0 : UnlockedCount / (float)ActiveCount;
             float nr = Theme.Approach(shownRatio, ratio, dt, 4.5f);
-            if (nr != shownRatio) { shownRatio = nr; busy = true; }
+            if (nr != shownRatio) { shownRatio = nr; dirty.Add(Theme.Inflate(bannerRect, 22, 22)); }
             float rupees = current == null ? 0 : current.Rupees;
             if (shownRupees < 0) shownRupees = rupees;
             float nrp = Theme.Approach(shownRupees, rupees, dt, 7);
             if (Math.Abs(nrp - rupees) < 0.5f) nrp = rupees;
-            if (nrp != shownRupees) { shownRupees = nrp; busy = true; }
-            if (now - introStart < 1.4f) busy = true;
+            if (nrp != shownRupees) { shownRupees = nrp; dirty.Add(Theme.Inflate(bannerRect, 22, 22)); }
+            var gridBand = new RectangleF(0, gridRect.Y, W, gridRect.Height);
+            if (now - introStart < 1.4f) dirty.Add(libraryOpen ? new RectangleF(0, 0, W, H) : gridBand);
             if (celebrations.Count > 0)
             {
                 foreach (var id in celebrations.Where(c => now - c.Value > CelebrationTime).Select(c => c.Key).ToList()) celebrations.Remove(id);
-                busy = true;
+                dirty.Add(gridBand);
             }
             if (sheet != sheetBefore || sheet >= 1) { Arrange(); PlaceFields(); }
             bool ambient = ambientOn && WindowState != FormWindowState.Minimized && ActiveForm == this;
@@ -348,11 +357,21 @@ namespace WiiUAchievements
             if (playing != null) playing.SetPlaying(ambient);
             if (ambient) ambientTime += dt;
             if (busy) { Invalidate(); return; }
-            if (scrolled) { Invalidate(Device(new RectangleF(0, gridRect.Y, W, gridRect.Height))); return; }
-            bool idle = true;
+            // One paint covers the bounding box of everything invalidated: while the grid
+            // scrolls, the banner waits instead of stretching the box over the whole window.
+            if (scrolled) dirty.Add(gridBand);
+            bool idle = dirty.Count == 0;
+            foreach (var r in dirty) Invalidate(Device(r));
+            if (scrolled) return;
             if (ambient)
             {
-                Invalidate(Device(Theme.Inflate(libraryOpen ? libraryGridRect : bannerRect, 4, 4)));
+                // The banner only changes when the video has a new frame (or the drawn sea moves).
+                int frames = playing != null && playing.HasFrame ? playing.Frames : -1;
+                if (frames < 0 || frames != shownVideoFrame || libraryOpen)
+                {
+                    shownVideoFrame = frames;
+                    Invalidate(Device(Theme.Inflate(libraryOpen ? libraryGridRect : bannerRect, 4, 4)));
+                }
                 if (statusKind == StatusKind.Live || statusKind == StatusKind.Demo || statusKind == StatusKind.Busy) Invalidate(Device(Theme.Inflate(statusPill, 4, 4)));
                 idle = false;
             }
@@ -393,7 +412,7 @@ namespace WiiUAchievements
         {
             Arrange();
             float t = (float)clock.Elapsed.TotalSeconds;
-            DrawBackdrop(g);
+            DrawBackdrop(g, clip);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -407,11 +426,11 @@ namespace WiiUAchievements
             }
             if (clip.IntersectsWith(new RectangleF(0, 0, W, TopH + 10))) DrawTopBar(g, t);
             if (drawer > 0) DrawDrawer(g, t);
-            if (clip.IntersectsWith(new RectangleF(0, H - BottomH - 12, W, BottomH + 12))) DrawBottomBar(g, t);
+            if (clip.IntersectsWith(new RectangleF(0, H - BottomH - 12, W, BottomH + 12))) DrawBottomBar(g, t, clip.Bottom > H - BottomH + 12);
             if (sheet > 0) DrawSheet(g, t);
             if (dialog > 0 && detail != null) DrawDialog(g, t);
         }
-        void DrawBackdrop(Graphics g)
+        void DrawBackdrop(Graphics g, RectangleF clip)
         {
             var size = ClientSize;
             if (size.Width < 1 || size.Height < 1) return;
@@ -436,7 +455,8 @@ namespace WiiUAchievements
             var mode = g.CompositingMode;
             g.CompositingMode = CompositingMode.SourceCopy;
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            g.DrawImage(backdrop, new Rectangle(0, 0, size.Width, size.Height), 0, 0, size.Width, size.Height, GraphicsUnit.Pixel);
+            var area = Rectangle.Intersect(Device(clip), new Rectangle(0, 0, size.Width, size.Height));
+            if (area.Width > 0 && area.Height > 0) g.DrawImage(backdrop, area, area.X, area.Y, area.Width, area.Height, GraphicsUnit.Pixel);
             g.CompositingMode = mode;
             g.InterpolationMode = InterpolationMode.Bilinear;
         }
@@ -478,10 +498,13 @@ namespace WiiUAchievements
         {
             float w = W;
             var style = Style;
-            using (var b = new LinearGradientBrush(new RectangleF(0, -1, w, TopH + 2), style.BarTop, style.BarBottom, 90f)) g.FillRectangle(b, 0, 0, w, TopH);
-            using (var b = new LinearGradientBrush(new RectangleF(0, TopH - 1, w, 10), Color.FromArgb(28, 20, 44, 64), Color.FromArgb(0, 20, 44, 64), 90f)) g.FillRectangle(b, 0, TopH, w, 8);
-            using (var pen = new Pen(style.BarLine)) g.DrawLine(pen, 0, TopH - 0.5f, w, TopH - 0.5f);
-            style.DecorateTopBar(g, w, TopH);
+            Layer(g, "top-bar", new RectangleF(0, 0, w, TopH + 8), style.GameId, b =>
+            {
+                using (var brush = new LinearGradientBrush(new RectangleF(0, -1, w, TopH + 2), style.BarTop, style.BarBottom, 90f)) b.FillRectangle(brush, 0, 0, w, TopH);
+                using (var brush = new LinearGradientBrush(new RectangleF(0, TopH - 1, w, 10), Color.FromArgb(28, 20, 44, 64), Color.FromArgb(0, 20, 44, 64), 90f)) b.FillRectangle(brush, 0, TopH, w, 8);
+                using (var pen = new Pen(style.BarLine)) b.DrawLine(pen, 0, TopH - 0.5f, w, TopH - 0.5f);
+                style.DecorateTopBar(b, w, TopH);
+            });
             var avatar = new RectangleF(Pad, 12, 40, 40);
             using (var b = new SolidBrush(Color.FromArgb(30, 20, 44, 64))) g.FillEllipse(b, Theme.Inflate(avatar, 3, 3).X, avatar.Y - 1, avatar.Width + 6, avatar.Height + 6);
             using (var b = new SolidBrush(Color.White)) g.FillEllipse(b, Theme.Inflate(avatar, 3, 3));
@@ -514,7 +537,7 @@ namespace WiiUAchievements
             float tw = Measure(title, titleFont).Width + 36, tx = (w - tw) / 2;
             if (tx > Pad + 54 + nameW + 16 && tx + tw < statusPill.X - 16)
             {
-                if (style.Themed) style.Crest(g, new PointF(tx + 14 + tw / 2, TopH - 1), 15);
+                if (style.Themed && !style.Crest(g, new PointF(tx + 14 + tw / 2, TopH - 1.5f), 190, 1)) style.Crest(g, new PointF(tx + 14 + tw / 2, TopH - 1), 15);
                 Theme.Trophy(g, new RectangleF(tx, 17, 28, 28));
                 Theme.Text(g, title, titleFont, Theme.Ink, new RectangleF(tx + 36, 14, tw, 34), StringAlignment.Near, StringAlignment.Center, false);
             }
@@ -549,14 +572,56 @@ namespace WiiUAchievements
             Theme.Cursor(g, r, r.Width / 2, FocusStrength(w, t));
         }
 
+        // Device-resolution bitmaps rebuilt only when their key changes; frames copy them 1:1.
+        sealed class LayerImage { public Bitmap Bitmap; public string Key; }
+        readonly Dictionary<string, LayerImage> layers = new Dictionary<string, LayerImage>();
+        int layerBuilds;
+        void ClearLayers() { foreach (var layer in layers.Values) layer.Bitmap.Dispose(); layers.Clear(); }
+        void Layer(Graphics g, string id, RectangleF area, string key, Action<Graphics> paint)
+        {
+            key += string.Format(CultureInfo.InvariantCulture, "|{0:0.0},{1:0.0},{2:0.0},{3:0.0}@{4}", area.X, area.Y, area.Width, area.Height, scale);
+            LayerImage layer;
+            if (!layers.TryGetValue(id, out layer) || layer.Key != key)
+            {
+                if (layer != null) layer.Bitmap.Dispose();
+                var bitmap = new Bitmap(Math.Max(1, (int)Math.Ceiling(area.Width * scale)), Math.Max(1, (int)Math.Ceiling(area.Height * scale)), PixelFormat.Format32bppPArgb);
+                try
+                {
+                    using (var b = Graphics.FromImage(bitmap))
+                    {
+                        // Text over transparency must use greyscale antialiasing (ClearType needs a backdrop).
+                        b.SmoothingMode = SmoothingMode.AntiAlias; b.TextRenderingHint = TextRenderingHint.AntiAliasGridFit; b.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        b.ScaleTransform(scale, scale); b.TranslateTransform(-area.X, -area.Y);
+                        paint(b);
+                    }
+                }
+                catch { bitmap.Dispose(); layers.Remove(id); throw; }
+                layers[id] = layer = new LayerImage { Bitmap = bitmap, Key = key };
+                layerBuilds++;
+            }
+            var interpolation = g.InterpolationMode; var offset = g.PixelOffsetMode;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor; g.PixelOffsetMode = PixelOffsetMode.Half;
+            g.DrawImage(layer.Bitmap, (float)Math.Round(area.X * scale) / scale, (float)Math.Round(area.Y * scale) / scale, layer.Bitmap.Width / scale, layer.Bitmap.Height / scale);
+            g.InterpolationMode = interpolation; g.PixelOffsetMode = offset;
+        }
+
         void DrawBanner(Graphics g)
         {
             var r = bannerRect;
-            Theme.Shadow(g, r, 22, 14, 80, 6);
+            Layer(g, "banner-shadow", Theme.Inflate(r, 24, 24), "shadow", b => Theme.Shadow(b, r, 22, 14, 80, 6));
             var playing = BannerVideo;
             bool drawn = false;
             // A video hiccup must never break painting: fall back to the drawn sea for that frame.
             try { drawn = playing != null && playing.Draw(g, r, 22); } catch (Exception) { drawn = false; }
+            if (!drawn) banner.Draw(g, r, 22, ambientTime, scale);
+            // Everything above the moving picture changes only with the session state.
+            string key = Style.GameId + drawn + statusKind + statusTitle + "|" + statusDetail + "|" + selectedGame.Id + "|" + UnlockedCount + "/" + ActiveCount + "|" +
+                shownRatio.ToString("0.0000", CultureInfo.InvariantCulture) + "|" + (current == null ? "-" : Math.Round(shownRupees) + "," + current.Health + "," + current.MaxHealth + "," + EarnedPoints);
+            Layer(g, "banner-overlay", Theme.Inflate(r, 12, 12), key, b => DrawBannerOverlay(b, drawn));
+        }
+        void DrawBannerOverlay(Graphics g, bool drawn)
+        {
+            var r = bannerRect;
             if (drawn)
             {
                 // Soft sea-blue veil on the left keeps the title readable over any time of day.
@@ -566,13 +631,13 @@ namespace WiiUAchievements
                     g.FillRectangle(b, r.X, r.Y, r.Width * 0.62f, r.Height);
                 g.Restore(state);
             }
-            else banner.Draw(g, r, 22, ambientTime, scale);
             Theme.Stroke(g, Theme.Inflate(r, -0.5f, -0.5f), 22, Color.FromArgb(80, 255, 255, 255), 1.2f);
             if (Style.Themed)
             {
                 using (var pen = new Pen(Color.FromArgb(200, 46, 32, 26), 4.5f)) using (var path = Theme.Round(Theme.Inflate(r, 1.5f, 1.5f), 23.5f)) g.DrawPath(pen, path);
                 using (var b = new LinearGradientBrush(Theme.Inflate(r, 2, 2), Theme.Light(Style.Trim, 0.35f), Style.TrimDark, 90f))
                 using (var pen = new Pen(b, 2.6f)) using (var path = Theme.Round(Theme.Inflate(r, 1.5f, 1.5f), 23.5f)) g.DrawPath(pen, path);
+                Style.Corners(g, r, 46, 5);
             }
             float tx = r.X + 28, textW = r.Width - 28 - 240;
             Theme.ShadowText(g, selectedGame.Title, Theme.Font(31, Weight.Heavy), Color.White, new RectangleF(tx, r.Y + 18, textW, 44), StringAlignment.Near, StringAlignment.Near, false, 90);
@@ -650,8 +715,12 @@ namespace WiiUAchievements
             var t2 = widgets["tab3"].Bounds;
             var box = new RectangleF(t0.X - 4, t0.Y - 4, t2.Right - t0.X + 8, t0.Height + 8);
             var style = Style;
-            Theme.Fill(g, box, box.Height / 2, style.TrackTop, style.TrackBottom);
-            Theme.Stroke(g, box, box.Height / 2, style.TrackEdge, style.Themed ? 1.3f : 1);
+            Layer(g, "tab-track", Theme.Inflate(box, 2, 2), style.GameId, b =>
+            {
+                Theme.Fill(b, box, box.Height / 2, style.TrackTop, style.TrackBottom);
+                style.Parchment(b, box, box.Height / 2, 0.5f);
+                Theme.Stroke(b, box, box.Height / 2, style.TrackEdge, style.Themed ? 1.3f : 1);
+            });
             var sel = widgets["tab" + filter].Bounds;
             if (tabX < 0) { tabX = sel.X; tabW = sel.Width; }
             var highlight = new RectangleF(tabX, sel.Y, tabW, sel.Height);
@@ -692,6 +761,8 @@ namespace WiiUAchievements
         {
             var state = g.Save();
             g.SetClip(new RectangleF(0, gridRect.Y, W, gridRect.Height), CombineMode.Intersect);
+            int inView = visible.Count(v => v.Kind == Kind.Tile && v.Bounds.Bottom >= gridRect.Y - TileH && v.Bounds.Y <= gridRect.Bottom + TileH);
+            tileCacheBudget = Math.Min(TileCacheMaximum, Math.Max(TileCacheLimit, inView * 2 + 8));
             int count = 0, drawn = 0;
             foreach (var w in visible)
             {
@@ -748,7 +819,7 @@ namespace WiiUAchievements
             r.Offset(0, -2.5f * w.Hover + 1.5f * w.Press);
             Theme.Shadow(g, r, 16, 7 + 5 * cursor, 54 + (int)(34 * cursor), 3 + 2 * cursor);
             Theme.Fill(g, r, 16, done ? style.CardTop : style.CardLockedTop, done ? Theme.Mix(style.CardBottom, style.Soft, style.Themed ? 0.15f : 0.4f) : style.CardLockedBottom);
-            style.DecorateCard(g, r, 16);
+            style.DecorateCard(g, r, 16, false);
             Color tier = Theme.TierColor(art.Tier), glow = Theme.TierGlow(art.Tier);
             using (var path = Theme.Round(r, 16))
             {
@@ -810,6 +881,8 @@ namespace WiiUAchievements
             Theme.Text(g, a.Description, Theme.Font(13, Weight.Regular), style.Muted, new RectangleF(tx, r.Y + 37, tw, 40), StringAlignment.Near, StringAlignment.Near, true);
             if (drawFooter) DrawProgress(g, a, unlock, new RectangleF(tx, r.Y + 79, tw, 18), Theme.Font(12.5f, Weight.Bold), false);
             Theme.Cursor(g, r, 16, cursor);
+            // Earned gold and platinum cards wear the gold corners.
+            if (done && art.Tier >= Tier.Gold && style.HasUiArt) style.Corners(g, r, 24, 4);
             if (party >= 0)
             {
                 Theme.Stroke(g, Theme.Inflate(r, 1, 1), 17, Color.FromArgb((int)(230 * (1 - party)), glow), 2.5f);
@@ -879,15 +952,19 @@ namespace WiiUAchievements
             Theme.Text(g, label, font, Theme.Ink, new RectangleF(bar.Right + 10, r.Y, lw, r.Height), StringAlignment.Near, StringAlignment.Center, false);
         }
 
-        void DrawBottomBar(Graphics g, float t)
+        void DrawBottomBar(Graphics g, float t, bool contents = true)
         {
             float w = W, y = H - BottomH;
             using (var b = new LinearGradientBrush(new RectangleF(0, y - 10, w, 11), Color.FromArgb(0, 20, 44, 64), Color.FromArgb(22, 20, 44, 64), 90f)) g.FillRectangle(b, 0, y - 9, w, 9);
             var style = Style;
-            using (var b = new LinearGradientBrush(new RectangleF(0, y - 1, w, BottomH + 2), style.FootTop, style.FootBottom, 90f)) g.FillRectangle(b, 0, y, w, BottomH);
-            using (var pen = new Pen(style.FootLine)) g.DrawLine(pen, 0, y + 0.5f, w, y + 0.5f);
-            using (var pen = new Pen(Color.White)) g.DrawLine(pen, 0, y + 1.5f, w, y + 1.5f);
-            style.DecorateFooter(g, new RectangleF(0, y, w, BottomH), 0);
+            Layer(g, "bottom-bar", new RectangleF(0, y - 12, w, BottomH + 12), style.GameId, b =>
+            {
+                using (var brush = new LinearGradientBrush(new RectangleF(0, y - 1, w, BottomH + 2), style.FootTop, style.FootBottom, 90f)) b.FillRectangle(brush, 0, y, w, BottomH);
+                using (var pen = new Pen(style.FootLine)) b.DrawLine(pen, 0, y + 0.5f, w, y + 0.5f);
+                using (var pen = new Pen(Color.White)) b.DrawLine(pen, 0, y + 1.5f, w, y + 1.5f);
+                style.DecorateFooter(b, new RectangleF(0, y, w, BottomH), 0);
+            });
+            if (!contents) return;
             if (libraryOpen)
             {
                 DrawButton(g, widgets["library-back"], t);
@@ -994,6 +1071,7 @@ namespace WiiUAchievements
             using (var pen = new Pen(style.BarLine)) g.DrawLine(pen, r.X, 63.5f, r.Right, 63.5f);
             if (style.Themed)
             {
+                style.Parchment(g, r, 0, 0.5f);
                 style.TrimLine(g, r.X, r.Right, 63, 2.2f);
                 using (var pen = new Pen(Color.FromArgb(200, 46, 32, 26), 4.4f)) g.DrawLine(pen, r.X + 1.5f, 0, r.X + 1.5f, H);
                 using (var b = new LinearGradientBrush(new RectangleF(r.X - 2, 0, 6, H), Theme.Light(style.Trim, 0.35f), style.TrimDark, 0f))
@@ -1002,6 +1080,7 @@ namespace WiiUAchievements
                 g.SetClip(r, CombineMode.Intersect);
                 style.WaveBandCached(g, new RectangleF(r.X, H - 13, r.Width, 15), 0.6f, 0.5f);
                 g.Restore(state);
+                style.Crest(g, new PointF(r.X + r.Width / 2, 63), 200, 1);
             }
             float sx = r.X + 24, cw = SheetW - 48;
             Theme.Gear(g, new RectangleF(sx, 20, 24, 24), style.Accent);
@@ -1106,7 +1185,8 @@ namespace WiiUAchievements
                 g.Restore(inner);
             }
             Theme.Stroke(g, r, 26, done ? Theme.Mix(tier, Color.White, 0.35f) : Color.FromArgb(214, 222, 228), done ? 1.5f : 1);
-            Style.DecoratePanel(g, r, 26, false);
+            Style.Parchment(g, r, 26, 0.55f);
+            Style.DecoratePanel(g, r, 26, true);
             // The medal arrives just after the card and floats gently once earned.
             float enter = Theme.EaseBack(Theme.Clamp01((dialog - 0.2f) / 0.8f));
             var mc = new PointF(c.X, r.Y + 100 + (done ? (float)Math.Sin(t * 1.7f) * 2.5f : 0));

@@ -1,5 +1,11 @@
 # Start here — handoff for another AI or developer
 
+**Ultrawide performance and owner UI art (2026-10-30):** scrolling at 3440×1440
+went from 120 ms to 8 ms per frame (adaptive card cache, region invalidation,
+cached layers, cheaper shadows/video); see `docs/UI.md` (Rendering performance)
+and `docs/VALIDATION.md`. The owner's gold corners, Triforce crest and parchment
+are in `assets/games/wind-waker-hd/ui/` and used by the Wind Waker style.
+
 **Wind Waker theme and banner video (2026-10-30):** the objectives section of a
 game now uses that game's full chrome (`GameStyle` palette + ornaments after the
 medal frames); the Games catalog stays neutral. The banner plays the owner's Outset

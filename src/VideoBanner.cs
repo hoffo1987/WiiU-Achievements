@@ -24,6 +24,7 @@ namespace WiiUAchievements
         Bitmap front, back, blurFront, blurBack;
         const int BlurW = 40, BlurH = 24, Feather = 44;
         byte[] ramp;
+        Color[] leftFront, rightFront, leftBack, rightBack;
         Thread thread;
         volatile bool stopping;
         int width, height;
@@ -139,7 +140,11 @@ namespace WiiUAchievements
                     long due = (timestamp - baseline) / 10000 - clock.ElapsedMilliseconds;
                     if (due > 0) Thread.Sleep((int)Math.Min(due, 200));
                     else if (due < -500) { baseline = timestamp; clock.Restart(); }
-                    lock (gate) { var swap = front; front = back; back = swap; swap = blurFront; blurFront = blurBack; blurBack = swap; }
+                    lock (gate)
+                    {
+                        var swap = front; front = back; back = swap; swap = blurFront; blurFront = blurBack; blurBack = swap;
+                        var column = leftFront; leftFront = leftBack; leftBack = column; column = rightFront; rightFront = rightBack; rightBack = column;
+                    }
                     Frames++;
                 }
             }
@@ -203,6 +208,13 @@ namespace WiiUAchievements
                     g.InterpolationMode = InterpolationMode.HighQualityBilinear;
                     g.DrawImage(back, new Rectangle(0, 0, BlurW, BlurH), 0, 0, width, height, GraphicsUnit.Pixel);
                 }
+                // Outer columns of the blurred copy: the sky/sea colours continued beside the picture.
+                if (leftBack == null) { leftBack = new Color[BlurH]; rightBack = new Color[BlurH]; }
+                for (int y = 0; y < BlurH; y++)
+                {
+                    leftBack[y] = Theme.Mix(blurBack.GetPixel(0, y), blurBack.GetPixel(1, y), 0.5f);
+                    rightBack[y] = Theme.Mix(blurBack.GetPixel(BlurW - 1, y), blurBack.GetPixel(BlurW - 2, y), 0.5f);
+                }
             }
             finally { Marshal.ReleaseComObject(buffer); }
         }
@@ -211,7 +223,7 @@ namespace WiiUAchievements
         {
             lock (gate)
             {
-                if (front == null || blurFront == null) return false;
+                if (front == null || leftFront == null) return false;
                 float s = r.Height / Math.Max(1, FocusBottom - FocusTop), vw = width * s, vh = height * s;
                 float x = r.X + r.Width * Anchor - FocusX * s;
                 if (vw >= r.Width) x = Math.Max(r.Right - vw, Math.Min(r.X, x));
@@ -222,18 +234,30 @@ namespace WiiUAchievements
                 g.InterpolationMode = InterpolationMode.HighQualityBilinear; g.PixelOffsetMode = PixelOffsetMode.Half;
                 using (var wrap = new ImageAttributes())
                 {
-                    // Outside the picture, the blurred outer columns continue sky and sea softly.
+                    // Outside the picture, the outer colours continue sky and sea as soft vertical gradients.
                     wrap.SetWrapMode(WrapMode.TileFlipXY);
                     float f = Feather * s;
-                    if (x + f > r.X)
-                        g.DrawImage(blurFront, Rectangle.Round(new RectangleF(r.X - 8, y, x + f - r.X + 8, vh)), 0, 0, 2, BlurH, GraphicsUnit.Pixel, wrap);
-                    if (x + vw - f < r.Right)
-                        g.DrawImage(blurFront, Rectangle.Round(new RectangleF(x + vw - f, y, r.Right + 8 - (x + vw - f), vh)), BlurW - 2, 0, 2, BlurH, GraphicsUnit.Pixel, wrap);
+                    if (x + f > r.X) Side(g, leftFront, new RectangleF(r.X - 2, y, x + f - r.X + 2, vh), r);
+                    if (x + vw - f < r.Right) Side(g, rightFront, new RectangleF(x + vw - f, y, r.Right + 2 - (x + vw - f), vh), r);
                     g.DrawImage(front, Rectangle.Round(new RectangleF(x, y, vw, vh)), 0, 0, width, height, GraphicsUnit.Pixel, wrap);
                 }
                 g.InterpolationMode = interpolation; g.PixelOffsetMode = offset;
                 g.Restore(state);
                 return true;
+            }
+        }
+        static void Side(Graphics g, Color[] column, RectangleF area, RectangleF visible)
+        {
+            area.Intersect(new RectangleF(visible.X - 2, area.Y, visible.Width + 4, area.Height));
+            if (area.Width < 0.5f || area.Height < 1) return;
+            var colors = new Color[column.Length + 2];
+            var positions = new float[column.Length + 2];
+            colors[0] = column[0]; colors[colors.Length - 1] = column[column.Length - 1]; positions[positions.Length - 1] = 1;
+            for (int i = 0; i < column.Length; i++) { colors[i + 1] = column[i]; positions[i + 1] = (i + 0.5f) / column.Length; }
+            using (var brush = new LinearGradientBrush(new RectangleF(area.X, area.Y - 0.5f, area.Width, area.Height + 1), colors[0], colors[colors.Length - 1], 90f))
+            {
+                brush.InterpolationColors = new ColorBlend { Colors = colors, Positions = positions };
+                g.FillRectangle(brush, area);
             }
         }
         public void Dispose()

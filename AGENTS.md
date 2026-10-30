@@ -29,9 +29,10 @@ These instructions apply to this entire project. Read `HANDOFF.md` first, then
 - Read `docs/COLLABORATION.md` before combining contributions from other agents.
 - The UI is custom-drawn (`docs/UI.md`). Keep artwork and sounds original and
   code-generated. Do not add Nintendo images, logos, Miis, sounds or system fonts.
-  Exception: `assets/games/<game>/` holds medal icons, rarity frames and a banner
-  video supplied by the project owner (2026-10-30); icons/frames are derived with
-  `tools/prepare-game-art.py`, the video only had its audio removed. Add
+  Exception: `assets/games/<game>/` holds medal icons, rarity frames, a banner
+  video and UI art (corners, crest, parchment) supplied by the project owner
+  (2026-10-30); icons/frames are derived with `tools/prepare-game-art.py`, the video
+  only had its audio removed, the UI art was cropped to its bounds. Add
   such art only on the owner's explicit request; never rip files from a game.
   The only third-party asset is Nunito (SIL OFL 1.1): keep `assets/fonts/OFL.txt`.
 - Each game has its own `GameStyle` (palette, frames, motif) inside the shared Wii U

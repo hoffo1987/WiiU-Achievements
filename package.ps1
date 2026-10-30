@@ -18,7 +18,7 @@ try {
         'src\Theme.cs', 'src\Banner.cs', 'src\Notification.cs', 'src\WindWakerProgression.cs', 'src\GameStyle.cs', 'src\Medals.cs', 'src\Glyphs.cs', 'src\VideoBanner.cs', 'tools\prepare-game-art.py',
         'assets\fonts\Nunito-Regular.ttf', 'assets\fonts\Nunito-Bold.ttf', 'assets\fonts\Nunito-ExtraBold.ttf', 'assets\fonts\OFL.txt',
         'docs\UI.md', 'docs\GAMES.md', 'docs\screenshots\games.png', 'docs\screenshots\paused.png', 'docs\screenshots\main.png', 'docs\screenshots\unlock.png', 'docs\screenshots\detail.png', 'docs\screenshots\settings.png', 'docs\screenshots\toast.png',
-        'docs\screenshots\medals.png', 'docs\screenshots\medals-locked.png', 'docs\screenshots\toast-timeline.png', 'docs\screenshots\toast-silver.png', 'docs\screenshots\toast-bronze.png', 'docs\screenshots\detail-locked.png',
+        'docs\screenshots\medals.png', 'docs\screenshots\medals-locked.png', 'docs\screenshots\toast-timeline.png', 'docs\screenshots\toast-silver.png', 'docs\screenshots\toast-bronze.png', 'docs\screenshots\detail-locked.png', 'docs\screenshots\growth.png', 'docs\screenshots\drawer.png',
         'tests\RecoveryTests.cs', 'tests\GameplayTests.cs', 'tests\CloudTests.cs', 'tests\CoreTests.cs', 'tests\SystemTests.cs', 'tests\ProgressionTests.cs', 'tests\UiTests.cs', 'tests\Probe.cs', 'tests\InitialItemProbe.cs', 'tests\inspect-initial.ps1', 'tests\run.ps1', 'tests\run.sh', 'tests\run-ui.ps1', 'tests\firestore-rules.cjs', 'tests\test-firestore.ps1',
         'docs\PROGRESS-RECOVERY.md', 'docs\GROK-REVIEW-2026-10-29.md', 'docs\AUTOMATIC-LOADS.md', 'docs\CLOUD.md', 'docs\ARCHITECTURE.md', 'docs\ACHIEVEMENTS.md', 'docs\PLAYTHROUGH.md', 'docs\RARITIES.md', 'docs\MEMORY-MAP.md', 'docs\VALIDATION.md', 'docs\COLLABORATION.md',
         '.cursor\rules\project.mdc', '.github\workflows\validate.yml')
@@ -44,7 +44,7 @@ try {
     $manifest = [ordered]@{
         schemaVersion = 1
         project = 'Wii U Achievements'
-        version = 'alpha-0.5-wind-waker-theme'
+        version = 'alpha-0.6-ultrawide-ui-art'
         generatedAtUtc = [DateTime]::UtcNow.ToString('o')
         testsPassedDuringPackaging = (-not $SkipTests.IsPresent)
         personalDataIncluded = $false

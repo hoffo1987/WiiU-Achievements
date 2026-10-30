@@ -1,5 +1,34 @@
 # Validation record and reproduction
 
+## Ultrawide scrolling performance and owner UI art — 2026-10-30, Windows x64
+
+Owner report: scrolling the objectives lagged badly fullscreen on an ultrawide
+screen. This PC's primary monitor is 3440×1440 at 100 %. A harness rendered the
+form at that size (paint work only; then into a WinForms `BufferedGraphics` DIB
+like a real WM_PAINT).
+
+| 3440×1440 | before | after |
+| --- | --- | --- |
+| scroll frame (grid band) | 120 ms, ~90 card rebuilds/frame | 8.0 ms in the DIB buffer (12 ms into a plain bitmap), 0 rebuilds |
+| full window | 147 ms | 24 ms |
+| banner | 19.7 ms | 7.3 ms (video 3.9 ms) |
+| top / bottom bar | 1.5 / 1.7 ms (15 / 17 ms with the parchment before caching) | 1.0 / 1.3 ms |
+
+At 1120×800: scroll 1.5 ms, full window 8 ms (was 14 ms). Root causes: card cache
+capped at 48 with ~70 cards in view; whole-window repaints on hover; large
+shadows filled under their content; banner repainted on every 15 ms tick.
+
+Owner UI art (`wind_waker_ui_assets.zip`, 6 PNGs) cropped and embedded; texture
+verified seamless (edge difference 0). Checked: `tests/run.ps1` **322 checks
+passed**; `tests/run-ui.ps1` **84 UI checks passed**, including new checks that
+the card cache budget covers twice the cards in view, repainting a scrolled view
+rebuilds no card, and bars/tab track/banner overlay are reused between frames.
+Rendered and inspected: main window, growth category with a gold earned card,
+detail dialog, settings, popup.
+
+Not checked: the real screen refresh while scrolling with a mouse wheel (the
+harness measures paint work), 150–200 % DPI, and the popup over Cemu.
+
 ## Wind Waker themed section and banner video — 2026-10-30, Windows x64
 
 Input: the owner's `windwaker-wallpaper-ytmp4.savetube.vip.mp4` (640×360, 30 fps,

@@ -13,6 +13,40 @@ the day that matches the local clock.
 
 ![Wind Waker section](screenshots/main.png)
 
+## Owner UI art (Wind Waker)
+
+`assets/games/wind-waker-hd/ui/` holds the owner's `wind_waker_ui_assets.zip`
+(2026-10-30), cropped to their visible bounds: four gold wave corners
+(`corner-*.png`, ~240 px), the Triforce crest (`crest.png`, 594×86, gold rule at
+77 % of its height) and the seamless sail-cloth parchment (`parchment.png`, 512 px).
+`GameStyle.Corners`, `Crest` and `Parchment` draw them; each is resampled once per
+device size and then copied 1:1. Placement: corners on the banner, detail dialog
+and popup, and on earned gold/platinum cards; crest under the title, on top of the
+dialog and on the settings header; parchment on bars, tab track, cards, dialog,
+settings and popup. Without the files the drawn ornaments are used.
+
+![Gold card corners](screenshots/growth.png)
+
+## Rendering performance
+
+Measured on a 3440×1440 screen at 100 % (see `docs/VALIDATION.md`):
+
+- The card cache budget is twice the cards in view (48 minimum, 400 maximum); a
+  fixed 48 thrashed on ultrawide/fullscreen windows and rebuilt ~90 cards per frame.
+- Footers that do not depend on live samples (pending, unlocked, disconnected) are
+  baked into the cached card; live progress is still drawn every frame.
+- `Animate` invalidates only what moved (hovered control, grid band, tab strip,
+  banner, dialog); while the grid scrolls the banner waits, because one paint covers
+  the bounding box of everything invalidated.
+- The banner repaints only when the video has a new frame. Its shadow and the
+  overlay (veil, frame, texts, chips, dial) are cached layers keyed by the session
+  state; bars and the tab track are cached layers too (`MainForm.Layer`).
+- Shadows skip the interior covered by their element; the backdrop copies only the
+  repainted area; the bottom bar draws only its wave strip when the grid scrolls.
+- The video's side fill is a vertical gradient of the edge colours instead of a
+  magnified bitmap.
+- Cached cards and layers are drawn with nearest-neighbour 1:1 copies.
+
 ## Game styles and chrome
 
 `GameStyle` holds, per game, the palette of every shared surface (`BackTop`…`Drawer`)

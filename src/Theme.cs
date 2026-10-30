@@ -203,12 +203,17 @@ namespace WiiUAchievements
         public static void Shadow(Graphics g, RectangleF r, float radius, float spread, int alpha, float dy)
         {
             const int steps = 6;
+            // The element is drawn on top: skipping its interior keeps big shadows cheap.
+            var state = g.Save();
+            if (r.Width > 6 && r.Height > 6)
+                using (var hole = Round(Inflate(r, -1.5f, -1.5f), Math.Max(0, radius - 1.5f))) g.SetClip(hole, CombineMode.Exclude);
             for (int i = steps; i >= 1; i--)
             {
                 float grow = spread * i / steps;
                 var rr = new RectangleF(r.X - grow, r.Y - grow + dy, r.Width + grow * 2, r.Height + grow * 2);
                 using (var path = Round(rr, radius + grow)) Fill(g, path, Color.FromArgb(Math.Max(1, alpha / steps), 20, 44, 64));
             }
+            g.Restore(state);
         }
         // The cyan outline used as a selection cursor in the Wii U system menus.
         public static void Cursor(Graphics g, RectangleF r, float radius, float strength)
