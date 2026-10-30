@@ -1,5 +1,33 @@
 # Validation record and reproduction
 
+## Wind Waker themed section and banner video — 2026-10-30, Windows x64
+
+Input: the owner's `windwaker-wallpaper-ytmp4.savetube.vip.mp4` (640×360, 30 fps,
+H.264 + AAC, 317.7 s). Measured with OpenCV: one continuous day cycle with ~1–2 s
+cross-fades near 78 s, 159 s and 243 s; looping the whole file is natural. Embedded
+without audio (4.06 MB).
+
+Checked:
+
+- Media Foundation interop decoded real frames on this PC: first frame shown while
+  paused, 91–92 frames in 3 s of playback, pause holds the frame, orientation correct,
+  seek to the local time of day after skipping to the key frame target (16:04 → day).
+- `tests/run.ps1`: **322 checks passed**. `tests/run-ui.ps1` in fresh folders:
+  **81 UI checks passed**, including: banner video embedded; Wind Waker style themed
+  and neutral style not; objectives use the game style and the Games catalog the
+  neutral one; the banner decodes a frame or falls back (here: decoded).
+- Scroll benchmark after caching the wave bands: median 2.0–2.4 ms, p95 14–16 ms
+  (previous build 1.9 / 13.6 ms); before caching it was 5.3 / 20.5 ms.
+- Rendered and inspected: main window at 1120×800, settings sheet, activity drawer,
+  unlocked and locked detail dialogs, Games catalog (neutral, with the video card),
+  paused state, popup frames. One early preview run threw inside `Render` and could
+  not be reproduced in eight further runs; the banner video draw is now guarded and
+  falls back to the drawn sea for that frame.
+
+Not checked: real playback over hours, behaviour on Windows N/Server (expected
+fallback), 150–200 % DPI, and the popup over a running Cemu game. No engine, memory,
+persistence, ID, point or revision change.
+
 ## Owner icons, rarity frames, game styles and folder layout — 2026-10-30, Windows x64
 
 Inputs: the owner's `icone.zip` (28 RGBA PNGs, 1254 px). Each file name matched an

@@ -1,5 +1,12 @@
 # Wii U Achievements — alpha 0.4
 
+**Tema Wind Waker e banner video (30 ottobre 2026):** tutta la sezione degli
+obiettivi di The Wind Waker HD è decorata nello stile delle cornici: barre color
+vela con filo d'oro, onde con la schiuma, schede pergamena, pulsanti crema e oro,
+anello a bussola, dialoghi e impostazioni con cornice dorata. Il banner riproduce il
+video di Isola Primula (alba, giorno, tramonto, notte) partendo dall'ora attuale; si
+ferma quando giochi in Cemu. La schermata Giochi resta nello stile Wii U.
+
 **Icone, rarità e stile del gioco (30 ottobre 2026):** la build principale è
 `WiiUAchievements.exe` nella cartella del progetto; le vecchie build sono in
 `build-check/archive/` e i pacchetti in `release/`. Le 28 icone fornite sostituiscono

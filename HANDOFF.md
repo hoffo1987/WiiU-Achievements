@@ -1,5 +1,13 @@
 # Start here — handoff for another AI or developer
 
+**Wind Waker theme and banner video (2026-10-30):** the objectives section of a
+game now uses that game's full chrome (`GameStyle` palette + ornaments after the
+medal frames); the Games catalog stays neutral. The banner plays the owner's Outset
+Island video through Windows Media Foundation (`src/VideoBanner.cs`), with the drawn
+sea as fallback. See `docs/UI.md` (Game styles, Banner video) and the latest
+`docs/VALIDATION.md` record. The video is third-party footage: the GitHub repository
+is public, so confirm with the owner before publishing it there.
+
 **Game styles and owner icons (2026-10-30):** the root `WiiUAchievements.exe` is
 the current main build (progress recovery + this change); older builds were moved
 to `build-check/archive/` (still scanned for legacy progress) and packages to

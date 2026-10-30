@@ -173,6 +173,20 @@ class UiTests
             Check(medal(early) < medal(late) * 0.5, "Popup medal arrives grey and turns to colour");
             late.Save(Path.Combine(output, "toast-gold.png"));
         }
+        Check(resources.Contains(prefix + "banner.mp4") && GameStyle.WindWaker.Themed && !GameStyle.Neutral.Themed,
+            "Wind Waker has an embedded banner video and its own chrome; the system style stays neutral");
+        var styleProperty = typeof(MainForm).GetProperty("Style", Private);
+        Check(styleProperty.GetValue(form, null) == GameStyle.WindWaker, "The objectives section is dressed in the game style");
+        Set(form, "libraryOpen", true);
+        Check(styleProperty.GetValue(form, null) == GameStyle.Neutral, "The Games catalog keeps the neutral system style");
+        Set(form, "libraryOpen", false);
+        var video = typeof(MainForm).GetProperty("BannerVideo", Private).GetValue(form, null) as VideoBanner;
+        var raw = (VideoBanner)Get(form, "video");
+        for (int i = 0; i < 300 && raw != null && !raw.HasFrame && !raw.Failed; i++) Thread.Sleep(10);
+        // Media Foundation may be absent (Mono, Windows N/Server): then the drawn sea is used.
+        Check(raw == null || raw.Failed ? video == null : raw.HasFrame, "Banner video decodes a frame, or falls back to the drawn sea");
+        Console.WriteLine("INFO banner video: " + (raw == null ? "not available" : raw.Failed ? "fallback (" + raw.Error + ")" : "decoded " + raw.Frames + " frame(s)"));
+        form.SavePreview(Path.Combine(output, "themed.png"));
         var lengths = new[] { Tier.Bronze, Tier.Silver, Tier.Gold, Tier.Platinum }.Select(t => Chime.Build(t)).ToList();
         Check(lengths.All(b => b.Length > 44 && b[0] == 'R' && b[8] == 'W') && lengths.Zip(lengths.Skip(1), (x, y) => y.Length > x.Length).All(x => x),
             "Each rarity has its own synthesised chime, longer for rarer medals");

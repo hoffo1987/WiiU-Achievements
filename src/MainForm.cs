@@ -270,6 +270,7 @@ namespace WiiUAchievements
             selectedGame = game; rules = loaded; progress = null; engine = null; current = null;
             arts.Clear(); foreach (var pair in loadedArt) arts.Add(pair.Key, pair.Value);
             if (backdrop != null) { backdrop.Dispose(); backdrop = null; } // The backdrop follows the game palette.
+            CloseBannerVideo();
             celebrations.Clear(); filter = categoryFilter = chapterFilter = 0; scroll = scrollTarget = 0; tabX = -1;
             Text = "Wii U Achievements — " + game.Title;
         }

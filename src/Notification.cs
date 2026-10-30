@@ -165,7 +165,7 @@ namespace WiiUAchievements
                 int halo = (art.Tier >= Tier.Gold ? 34 : 20) + (int)(18 * revealed * (1 - Theme.Clamp01((t - 1.6f) / 1.2f)));
                 for (int i = 4; i >= 1; i--)
                     Theme.Stroke(g, Theme.Inflate(card, i * 2.6f, i * 2.6f), 22 + i * 2.6f, Color.FromArgb(halo / i + 6, glow), 3);
-                Theme.Fill(g, card, 22, Color.White, Color.FromArgb(238, 243, 247));
+                Theme.Fill(g, card, 22, style.CardTop, style.Themed ? style.CardBottom : Color.FromArgb(238, 243, 247));
                 var medalCenter = new PointF(card.X + Panel / 2, card.Y + card.Height / 2);
                 using (var path = Theme.Round(card, 22))
                 {
@@ -179,7 +179,8 @@ namespace WiiUAchievements
                         light.AddEllipse(Theme.Square(medalCenter, 120));
                         using (var b = new PathGradientBrush(light) { CenterColor = Color.FromArgb(90 + (int)(60 * revealed), Theme.Light(glow, 0.5f)), SurroundColors = new[] { Color.FromArgb(0, glow) } }) g.FillPath(b, light);
                     }
-                    style.Pattern(g, new RectangleF(panel.X, panel.Bottom - 30, panel.Width, 30), t * 1.4f, Color.FromArgb(80, 255, 255, 255));
+                    if (style.Themed) style.WaveBand(g, new RectangleF(panel.X, panel.Bottom - 15, panel.Width, 16), t * 0.12f, 1);
+                    else style.Pattern(g, new RectangleF(panel.X, panel.Bottom - 30, panel.Width, 30), t * 1.4f, Color.FromArgb(80, 255, 255, 255));
                     using (var pen = new Pen(Color.FromArgb(110, 255, 255, 255), 1.2f))
                         for (int i = 0; i < 6; i++)
                         {
@@ -187,7 +188,14 @@ namespace WiiUAchievements
                             float bx = panel.X + 12 + i * 21 + (float)Math.Sin(t * 2 + i) * 3, by = panel.Bottom + 8 - rise;
                             g.DrawEllipse(pen, bx, by, bubble, bubble);
                         }
-                    using (var b = new SolidBrush(Color.FromArgb(90, 255, 255, 255))) g.FillRectangle(b, panel.Right - 1, panel.Y, 1.2f, panel.Height);
+                    if (style.Themed)
+                    {
+                        // Gold rule between the sea panel and the text, as on the frames' ring.
+                        using (var pen = new Pen(Color.FromArgb(46, 32, 26), 4.2f)) g.DrawLine(pen, panel.Right, panel.Y, panel.Right, panel.Bottom);
+                        using (var b = new LinearGradientBrush(new RectangleF(panel.Right - 2, panel.Y - 1, 4, panel.Height + 2), Theme.Light(style.Trim, 0.35f), style.TrimDark, 90f))
+                        using (var pen = new Pen(b, 2.2f)) g.DrawLine(pen, panel.Right, panel.Y, panel.Right, panel.Bottom);
+                    }
+                    else using (var b = new SolidBrush(Color.FromArgb(90, 255, 255, 255))) g.FillRectangle(b, panel.Right - 1, panel.Y, 1.2f, panel.Height);
                     using (var b = new LinearGradientBrush(new RectangleF(panel.Right, card.Y, 90, card.Height), Color.FromArgb(60, style.Soft), Color.FromArgb(0, style.Soft), 0f))
                         g.FillRectangle(b, panel.Right, card.Y, 89, card.Height);
                     float shine = (t - 0.95f) / 0.8f;

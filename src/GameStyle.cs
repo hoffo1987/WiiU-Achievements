@@ -8,32 +8,61 @@ using System.Reflection;
 
 namespace WiiUAchievements
 {
-    // Each game has its own look inside the neutral Wii U system chrome: the banner,
-    // medal frames, card accents, progress bars and unlock popup use the game's palette
-    // and artwork, while bars, buttons and settings stay common to every game.
+    // Each game section is dressed in its own style inside the Wii U layout: backdrop, bars,
+    // buttons, tabs, cards, panels, banner, medal frames and popup take the game's palette and
+    // ornaments. The Games catalog and games without a style use the neutral Wii U look.
     public sealed class GameStyle
     {
         public string GameId { get; private set; }
+        public bool Themed { get; private set; }
         public Color Accent { get; private set; }      // progress, headers, countdown
         public Color AccentDark { get; private set; }
         public Color Glow { get; private set; }
         public Color Soft { get; private set; }        // pale wash behind content
         public Color Warm { get; private set; }        // secondary highlight (sail cream)
         public Color Deep { get; private set; }        // popup panel depth
+        // Chrome palette. Values are only assigned in the two definitions below.
+        public Color BackTop, BackBottom, Muted, Trim, TrimDark;
+        public Color BarTop, BarBottom, BarLine, FootTop, FootBottom, FootLine;
+        public Color ButtonTop, ButtonBottom, ButtonEdge, ButtonInk, GlyphFill, GlyphInk;
+        public Color PrimaryTop, PrimaryBottom, PrimaryEdge, PrimaryInk, PrimaryGlyph, PrimaryGlyphInk;
+        public Color TrackTop, TrackBottom, TrackEdge, BubbleTop, BubbleBottom, BubbleOffTop, BubbleOffBottom;
+        public Color CardTop, CardBottom, CardLockedTop, CardLockedBottom, CardEdge, SheetTop, SheetBottom, Drawer;
         readonly Dictionary<string, Bitmap> art = new Dictionary<string, Bitmap>(StringComparer.Ordinal);
         readonly HashSet<string> missing = new HashSet<string>(StringComparer.Ordinal);
 
+        static Color C(int r, int g, int b) { return Color.FromArgb(r, g, b); }
         public static readonly GameStyle Neutral = new GameStyle
         {
             GameId = "", Accent = Theme.Accent, AccentDark = Theme.AccentDark, Glow = Theme.Glow,
-            Soft = Theme.AccentSoft, Warm = Color.FromArgb(255, 236, 170), Deep = Color.FromArgb(0, 104, 168)
+            Soft = Theme.AccentSoft, Warm = C(255, 236, 170), Deep = C(0, 104, 168),
+            BackTop = Theme.BackTop, BackBottom = Theme.BackBottom, Muted = Theme.Muted, Trim = Theme.Accent, TrimDark = Theme.AccentDark,
+            BarTop = Color.White, BarBottom = C(236, 241, 244), BarLine = C(204, 212, 218),
+            FootTop = C(242, 245, 248), FootBottom = C(220, 227, 233), FootLine = C(198, 207, 214),
+            ButtonTop = Color.White, ButtonBottom = C(233, 238, 242), ButtonEdge = C(190, 199, 207), ButtonInk = Theme.Ink, GlyphFill = C(104, 114, 122), GlyphInk = Color.White,
+            PrimaryTop = C(64, 202, 248), PrimaryBottom = C(0, 148, 214), PrimaryEdge = C(0, 120, 184), PrimaryInk = Color.White,
+            PrimaryGlyph = Color.FromArgb(245, 255, 255, 255), PrimaryGlyphInk = Theme.AccentDark,
+            TrackTop = C(220, 227, 232), TrackBottom = C(231, 236, 240), TrackEdge = C(204, 212, 218),
+            BubbleTop = Theme.Glow, BubbleBottom = Theme.AccentDark, BubbleOffTop = C(198, 206, 212), BubbleOffBottom = C(178, 188, 196),
+            CardTop = Color.White, CardBottom = C(240, 245, 248), CardLockedTop = C(251, 252, 253), CardLockedBottom = C(235, 239, 242), CardEdge = C(212, 220, 226),
+            SheetTop = C(248, 250, 251), SheetBottom = C(232, 238, 242), Drawer = Color.FromArgb(248, 33, 40, 48)
         };
-        // The Wind Waker HD: open sea, white foam and the cream of the sail.
+        // The Wind Waker HD, after the medal frames: open sea and foam-crested waves, sail
+        // cream and parchment, gold scrolls with a dark warm outline.
         public static readonly GameStyle WindWaker = new GameStyle
         {
-            GameId = GameCatalog.WindWakerId, Accent = Color.FromArgb(0, 150, 206), AccentDark = Color.FromArgb(0, 92, 158),
-            Glow = Color.FromArgb(86, 214, 242), Soft = Color.FromArgb(218, 243, 251), Warm = Color.FromArgb(250, 236, 196),
-            Deep = Color.FromArgb(4, 70, 136)
+            GameId = GameCatalog.WindWakerId, Themed = true, Accent = C(0, 150, 206), AccentDark = C(0, 92, 158),
+            Glow = C(86, 214, 242), Soft = C(218, 243, 251), Warm = C(250, 236, 196), Deep = C(4, 70, 136),
+            BackTop = C(236, 247, 251), BackBottom = C(204, 230, 240), Muted = C(126, 114, 98), Trim = C(240, 194, 80), TrimDark = C(140, 90, 28),
+            BarTop = C(255, 252, 242), BarBottom = C(243, 232, 206), BarLine = C(190, 150, 84),
+            FootTop = C(251, 246, 230), FootBottom = C(236, 222, 190), FootLine = C(190, 150, 84),
+            ButtonTop = C(255, 253, 246), ButtonBottom = C(241, 230, 202), ButtonEdge = C(198, 156, 88), ButtonInk = C(76, 52, 34), GlyphFill = C(122, 84, 50), GlyphInk = C(255, 244, 214),
+            PrimaryTop = C(38, 178, 222), PrimaryBottom = C(0, 100, 168), PrimaryEdge = C(170, 120, 36), PrimaryInk = Color.White,
+            PrimaryGlyph = C(255, 230, 150), PrimaryGlyphInk = C(0, 84, 140),
+            TrackTop = C(236, 223, 194), TrackBottom = C(246, 238, 218), TrackEdge = C(204, 176, 124),
+            BubbleTop = C(38, 178, 222), BubbleBottom = C(0, 92, 158), BubbleOffTop = C(208, 188, 150), BubbleOffBottom = C(184, 160, 118),
+            CardTop = C(255, 254, 250), CardBottom = C(248, 240, 222), CardLockedTop = C(252, 250, 245), CardLockedBottom = C(239, 233, 220), CardEdge = C(220, 200, 160),
+            SheetTop = C(254, 250, 240), SheetBottom = C(240, 229, 204), Drawer = Color.FromArgb(252, 8, 46, 82)
         };
 
         public static GameStyle For(string gameId)
@@ -110,6 +139,205 @@ namespace WiiUAchievements
                 path.AddBezier(c.X + s * 0.25f, c.Y - s * 0.5f, c.X + s * 0.75f, c.Y - s * 0.45f, c.X + s * 0.75f, c.Y + s * 0.15f, c.X + s * 0.3f, c.Y + s * 0.15f);
                 path.AddBezier(c.X + s * 0.3f, c.Y + s * 0.15f, c.X + s * 0.05f, c.Y + s * 0.15f, c.X + s * 0.02f, c.Y - s * 0.15f, c.X + s * 0.22f, c.Y - s * 0.18f);
                 g.DrawPath(pen, path);
+            }
+        }
+
+        // ---- Banner video: the owner's Outset Island wallpaper (dawn, day, sunset, night).
+        public VideoBanner OpenBannerVideo()
+        {
+            if (this != WindWaker) return null;
+            var video = VideoBanner.Open(GameId, "banner.mp4", new double[] { 0, 80, 161, 245 });
+            if (video == null) return null;
+            // Keep the island from palm tops to the jetty in view, right of the title.
+            video.FocusTop = 116; video.FocusBottom = 300; video.FocusX = 300; video.Anchor = 0.6f;
+            return video;
+        }
+
+        // ---------------------------------------------------------------- ornaments
+        // Drawn in the manner of the medal frames: dark warm outline, teal waves with cream
+        // foam, gold scrolls. Neutral style draws none of them.
+        static readonly Color Outline = C(46, 32, 26), Foam = C(252, 242, 214), WaveTop = C(46, 170, 176), WaveBottom = C(14, 92, 150);
+
+        // One breaking wave whose crest curls to the right (or left when mirrored).
+        static GraphicsPath WaveShape(float x0, float w, float top, float bottom, bool mirror)
+        {
+            float h = bottom - top;
+            Func<float, float> X = f => mirror ? x0 + w - w * f : x0 + w * f;
+            var p = new GraphicsPath();
+            p.AddBezier(X(0), bottom, X(0.18f), bottom - h * 0.3f, X(0.3f), top + h * 0.02f, X(0.58f), top);
+            p.AddBezier(X(0.58f), top, X(0.8f), top - h * 0.02f, X(0.92f), top + h * 0.3f, X(0.8f), top + h * 0.46f);
+            p.AddBezier(X(0.8f), top + h * 0.46f, X(0.72f), top + h * 0.56f, X(0.86f), bottom - h * 0.2f, X(1.08f), bottom);
+            p.CloseFigure();
+            return p;
+        }
+        public static void Wave(Graphics g, float x0, float w, float top, float bottom, bool mirror, float alpha)
+        {
+            float h = bottom - top, line = Math.Max(1f, h * 0.06f);
+            using (var shape = WaveShape(x0, w, top, bottom, mirror))
+            {
+                using (var b = new LinearGradientBrush(new RectangleF(x0, top - 1, w, h + 2), Theme.Alpha(WaveTop, alpha), Theme.Alpha(WaveBottom, alpha), 90f)) g.FillPath(b, shape);
+                using (var pen = new Pen(Theme.Alpha(Outline, alpha * 0.85f), line) { LineJoin = LineJoin.Round }) g.DrawPath(pen, shape);
+            }
+            Func<float, float> X = f => mirror ? x0 + w - w * f : x0 + w * f;
+            using (var crest = new GraphicsPath())
+            {
+                crest.AddBezier(X(0.22f), top + h * 0.42f, X(0.32f), top + h * 0.1f, X(0.46f), top + h * 0.04f, X(0.6f), top + h * 0.06f);
+                crest.AddBezier(X(0.6f), top + h * 0.06f, X(0.78f), top + h * 0.08f, X(0.82f), top + h * 0.34f, X(0.7f), top + h * 0.36f);
+                crest.AddBezier(X(0.7f), top + h * 0.36f, X(0.62f), top + h * 0.37f, X(0.62f), top + h * 0.26f, X(0.68f), top + h * 0.24f);
+                using (var pen = new Pen(Theme.Alpha(Outline, alpha * 0.85f), h * 0.2f + line * 2) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round }) g.DrawPath(pen, crest);
+                using (var pen = new Pen(Theme.Alpha(Foam, alpha), h * 0.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round }) g.DrawPath(pen, crest);
+            }
+        }
+        // A row of overlapping waves along the top (crests up) or bottom of r.
+        public void WaveBand(Graphics g, RectangleF r, float phase, float alpha)
+        {
+            if (!Themed || r.Width < 4) return;
+            float w = r.Height * 2.6f, start = r.X - w + (phase % 1) * w;
+            var state = g.Save();
+            g.SetClip(new RectangleF(r.X, r.Y - r.Height, r.Width, r.Height * 2), CombineMode.Intersect);
+            for (float x = start; x < r.Right + w; x += w * 0.78f) Wave(g, x, w, r.Y, r.Bottom + r.Height * 0.1f, false, alpha);
+            g.Restore(state);
+        }
+        // Static bands on bars and panels are repainted often (scrolling touches the bottom bar):
+        // keep a few rasterised at device resolution.
+        readonly Dictionary<string, Bitmap> bands = new Dictionary<string, Bitmap>(StringComparer.Ordinal);
+        public void WaveBandCached(Graphics g, RectangleF r, float phase, float alpha)
+        {
+            if (!Themed || r.Width < 4 || r.Height < 1) return;
+            float scale;
+            using (var m = g.Transform) scale = Math.Max(0.5f, m.Elements[0]);
+            string key = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.0}x{1:0.0}@{2:0.00}/{3:0.00}/{4:0.00}", r.Width, r.Height, scale, phase, alpha);
+            Bitmap band;
+            if (!bands.TryGetValue(key, out band))
+            {
+                if (bands.Count >= 8) { foreach (var old in bands.Values) old.Dispose(); bands.Clear(); }
+                band = new Bitmap((int)Math.Ceiling(r.Width * scale) + 2, (int)Math.Ceiling(r.Height * 2.2f * scale) + 2, PixelFormat.Format32bppPArgb);
+                using (var b = Graphics.FromImage(band))
+                {
+                    b.SmoothingMode = SmoothingMode.AntiAlias; b.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    b.ScaleTransform(scale, scale);
+                    WaveBand(b, new RectangleF(0, r.Height, r.Width, r.Height), phase, alpha);
+                }
+                bands[key] = band;
+            }
+            var interpolation = g.InterpolationMode;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.DrawImage(band, r.X, r.Y - r.Height, band.Width / scale, band.Height / scale);
+            g.InterpolationMode = interpolation;
+        }
+        // Gold scroll: a thick inked spiral like the frames' cloud ornaments.
+        public static void Swirl(Graphics g, PointF c, float radius, bool mirror, Color light, Color dark)
+        {
+            var points = new PointF[28];
+            for (int i = 0; i < points.Length; i++)
+            {
+                float t = i / (float)(points.Length - 1), a = (float)(Math.PI * (0.15 + 1.75 * t)), rr = radius * (1 - 0.68f * t);
+                points[i] = new PointF(c.X + (mirror ? -1 : 1) * (float)Math.Cos(a) * rr, c.Y - (float)Math.Sin(a) * rr);
+            }
+            using (var pen = new Pen(Outline, radius * 0.46f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round }) g.DrawCurve(pen, points);
+            using (var b = new LinearGradientBrush(Theme.Inflate(new RectangleF(c.X - radius, c.Y - radius, radius * 2, radius * 2), 2, 2), light, dark, 90f))
+            using (var pen = new Pen(b, radius * 0.28f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round }) g.DrawCurve(pen, points);
+            using (var pen = new Pen(Color.FromArgb(120, 255, 255, 255), Math.Max(0.8f, radius * 0.07f)) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawCurve(pen, points, 0, 10, 0.5f);
+        }
+        // A gold rule with a dark outline, as on the frames' metal ring.
+        public void TrimLine(Graphics g, float x0, float x1, float y, float thickness)
+        {
+            if (!Themed) return;
+            using (var pen = new Pen(Outline, thickness + 2)) g.DrawLine(pen, x0, y, x1, y);
+            using (var b = new LinearGradientBrush(new RectangleF(x0, y - thickness, Math.Max(1, x1 - x0), thickness * 2), Theme.Light(Trim, 0.35f), TrimDark, 90f))
+            using (var pen = new Pen(b, thickness)) g.DrawLine(pen, x0, y, x1, y);
+        }
+        // Crest: two gold scrolls around a small gem, centred on c.
+        public void Crest(Graphics g, PointF c, float size)
+        {
+            if (!Themed) return;
+            Swirl(g, new PointF(c.X - size * 0.62f, c.Y), size * 0.42f, true, Theme.Light(Trim, 0.4f), TrimDark);
+            Swirl(g, new PointF(c.X + size * 0.62f, c.Y), size * 0.42f, false, Theme.Light(Trim, 0.4f), TrimDark);
+            using (var gem = new GraphicsPath())
+            {
+                gem.AddPolygon(new[] { new PointF(c.X, c.Y - size * 0.42f), new PointF(c.X + size * 0.3f, c.Y), new PointF(c.X, c.Y + size * 0.42f), new PointF(c.X - size * 0.3f, c.Y) });
+                using (var b = new LinearGradientBrush(Theme.Inflate(gem.GetBounds(), 1, 1), Theme.Light(Trim, 0.5f), TrimDark, 90f)) g.FillPath(b, gem);
+                using (var pen = new Pen(Outline, Math.Max(1, size * 0.08f)) { LineJoin = LineJoin.Round }) g.DrawPath(pen, gem);
+            }
+            using (var b = new SolidBrush(Color.FromArgb(200, 255, 255, 255))) g.FillEllipse(b, c.X - size * 0.09f, c.Y - size * 0.22f, size * 0.12f, size * 0.12f);
+        }
+
+        // ---------------------------------------------------------------- dressing of shared surfaces
+        public void DecorateBackdrop(Graphics g, Size size, float scale)
+        {
+            if (!Themed) return;
+            // Faint wind spirals, like the sail emblem, scattered over the sky.
+            using (var pen = new Pen(Color.FromArgb(22, 0, 110, 170), 2.4f * scale) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                for (int i = 0; i < 9; i++)
+                {
+                    float x = size.Width * ((i * 0.37f + 0.11f) % 1), y = size.Height * ((i * 0.53f + 0.27f) % 1), s = (34 + i % 3 * 14) * scale;
+                    var points = new PointF[18];
+                    for (int k = 0; k < points.Length; k++)
+                    {
+                        float t = k / 17f, a = (float)(Math.PI * 2 * 1.2 * t), rr = s * (1 - 0.8f * t);
+                        points[k] = new PointF(x + (float)Math.Cos(a) * rr, y + (float)Math.Sin(a) * rr * 0.75f);
+                    }
+                    g.DrawCurve(pen, points);
+                }
+            // The sea along the bottom of the window, behind the bottom bar's own waves.
+            WaveBand(g, new RectangleF(0, size.Height - 120 * scale, size.Width, 26 * scale), 0.3f, 0.16f);
+        }
+        public void DecorateTopBar(Graphics g, float width, float height)
+        {
+            if (!Themed) return;
+            TrimLine(g, 0, width, height - 1.5f, 2.2f);
+        }
+        public void DecorateFooter(Graphics g, RectangleF r, float phase)
+        {
+            if (!Themed) return;
+            WaveBandCached(g, new RectangleF(r.X, r.Y - 9, r.Width, 11), phase, 1);
+            TrimLine(g, r.X, r.Right, r.Y + 2.5f, 2.2f);
+        }
+        public void DecorateCard(Graphics g, RectangleF r, float radius)
+        {
+            if (!Themed) return;
+            var state = g.Save();
+            using (var clip = Theme.Round(r, radius)) g.SetClip(clip, CombineMode.Intersect);
+            Wave(g, r.Right - 70, 64, r.Bottom - 15, r.Bottom + 2, false, 0.22f);
+            Wave(g, r.Right - 34, 52, r.Bottom - 11, r.Bottom + 2, false, 0.3f);
+            g.Restore(state);
+        }
+        // Ornate border for dialogs and the settings sheet: gold rule, scroll crest, corner waves.
+        public void DecoratePanel(Graphics g, RectangleF r, float radius, bool crest)
+        {
+            if (!Themed) return;
+            using (var pen = new Pen(Outline, 4.2f)) using (var path = Theme.Round(Theme.Inflate(r, -3, -3), radius - 3)) g.DrawPath(pen, path);
+            using (var b = new LinearGradientBrush(Theme.Inflate(r, 0, 1), Theme.Light(Trim, 0.35f), TrimDark, 90f))
+            using (var pen = new Pen(b, 2.4f)) using (var path = Theme.Round(Theme.Inflate(r, -3, -3), radius - 3)) g.DrawPath(pen, path);
+            var state = g.Save();
+            using (var clip = Theme.Round(Theme.Inflate(r, -5, -5), radius - 5)) g.SetClip(clip, CombineMode.Intersect);
+            Wave(g, r.X - 6, 74, r.Bottom - 26, r.Bottom + 4, true, 0.9f);
+            Wave(g, r.X + 34, 58, r.Bottom - 18, r.Bottom + 4, true, 0.9f);
+            Wave(g, r.Right - 68, 74, r.Bottom - 26, r.Bottom + 4, false, 0.9f);
+            Wave(g, r.Right - 92, 58, r.Bottom - 18, r.Bottom + 4, false, 0.9f);
+            g.Restore(state);
+            if (crest) Crest(g, new PointF(r.X + r.Width / 2, r.Y + 2), 22);
+        }
+        // Compass rose ring around the completion dial.
+        public void CompassRing(Graphics g, PointF c, float radius)
+        {
+            if (!Themed) return;
+            using (var pen = new Pen(Outline, 5)) g.DrawEllipse(pen, Theme.Square(c, radius * 2));
+            using (var b = new LinearGradientBrush(Theme.Inflate(Theme.Square(c, radius * 2), 2, 2), Theme.Light(Trim, 0.4f), TrimDark, 60f))
+            using (var pen = new Pen(b, 3)) g.DrawEllipse(pen, Theme.Square(c, radius * 2));
+            using (var pen = new Pen(Color.FromArgb(150, TrimDark), 1.3f))
+                for (int i = 0; i < 32; i++)
+                {
+                    double a = i * Math.PI / 16;
+                    float inner = radius - (i % 4 == 0 ? 9 : 5), outer = radius - 2.5f;
+                    g.DrawLine(pen, c.X + (float)Math.Cos(a) * inner, c.Y + (float)Math.Sin(a) * inner, c.X + (float)Math.Cos(a) * outer, c.Y + (float)Math.Sin(a) * outer);
+                }
+            // North point, as on the sea chart.
+            using (var north = new GraphicsPath())
+            {
+                north.AddPolygon(new[] { new PointF(c.X, c.Y - radius - 9), new PointF(c.X + 7, c.Y - radius + 3), new PointF(c.X - 7, c.Y - radius + 3) });
+                using (var b = new LinearGradientBrush(Theme.Inflate(north.GetBounds(), 1, 1), C(240, 90, 70), C(170, 40, 34), 90f)) g.FillPath(b, north);
+                using (var pen = new Pen(Outline, 1.4f) { LineJoin = LineJoin.Round }) g.DrawPath(pen, north);
             }
         }
     }

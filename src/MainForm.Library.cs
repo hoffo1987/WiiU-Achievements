@@ -67,7 +67,10 @@ namespace WiiUAchievements
                 var art = new RectangleF(r.X, r.Y, r.Width, 108);
                 if (game.Id == GameCatalog.WindWakerId)
                 {
-                    banner.Draw(g, art, 0, ambientTime, scale);
+                    bool drawn = false;
+                    var playing = game == selectedGame ? BannerVideo : null;
+                    try { drawn = playing != null && playing.Draw(g, art, 0); } catch (Exception) { drawn = false; }
+                    if (!drawn) banner.Draw(g, art, 0, ambientTime, scale);
                     Theme.ShadowText(g, game.Title, Theme.Font(24, Weight.Heavy), Color.White,
                         new RectangleF(r.X + 22, r.Y + 45, r.Width - 44, 36), StringAlignment.Near, StringAlignment.Center, false, 100);
                 }

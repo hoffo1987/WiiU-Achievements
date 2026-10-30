@@ -12,10 +12,10 @@ $resources = @(@('Nunito-Regular.ttf', 'Nunito-Bold.ttf', 'Nunito-ExtraBold.ttf'
     if (-not (Test-Path -LiteralPath $font)) { throw ('Font mancante: ' + $font) }
     '/resource:' + $font + ',WiiUAchievements.Fonts.' + $_
 })
-# Per-game artwork (owner icons, rarity frames, sky) becomes WiiUAchievements.Games.<game>.<path>.
+# Per-game artwork (owner icons, rarity frames, sky, banner video) becomes WiiUAchievements.Games.<game>.<path>.
 $games = Join-Path $PSScriptRoot 'assets\games'
 if (Test-Path -LiteralPath $games) {
-    $resources += @(Get-ChildItem -LiteralPath $games -Filter '*.png' -File -Recurse | Sort-Object FullName | ForEach-Object {
+    $resources += @(Get-ChildItem -LiteralPath $games -File -Recurse | Where-Object { @('.png', '.mp4') -contains $_.Extension.ToLowerInvariant() } | Sort-Object FullName | ForEach-Object {
         '/resource:' + $_.FullName + ',WiiUAchievements.Games.' + $_.FullName.Substring($games.Length + 1).Replace('\', '.')
     })
 }

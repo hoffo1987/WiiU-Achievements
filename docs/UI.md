@@ -1,4 +1,44 @@
-# User interface (alpha 0.4 — game styles)
+# User interface (alpha 0.5 — Wind Waker theme)
+
+**2026-10-30 — themed game section and banner video.** The whole objectives section
+of a game now wears that game's style; the Games catalog stays in the neutral Wii U
+style. For The Wind Waker HD every shared surface follows the medal frames: sky/sea
+backdrop with faint wind spirals, sail-cream bars with a gold rule, foam-crested
+waves along the bottom bar, the activity drawer and the popup panel, parchment cards
+with a wave corner, cream pill buttons with gold rims (sea-blue primary), a compass
+ring with a north point around the completion dial, gold-framed banner, dialog and
+settings sheet, and a scroll crest under the title. The banner plays the owner's
+Outset Island wallpaper video (dawn, day, sunset, night), starting from the part of
+the day that matches the local clock.
+
+![Wind Waker section](screenshots/main.png)
+
+## Game styles and chrome
+
+`GameStyle` holds, per game, the palette of every shared surface (`BackTop`…`Drawer`)
+and the ornaments (`Wave`, `WaveBand`, `Swirl`, `Crest`, `TrimLine`, `DecoratePanel`,
+`CompassRing`, …). `MainForm.Style` returns the game's style for its objectives and
+`GameStyle.Neutral` for the Games catalog; neutral values reproduce the earlier Wii U
+look exactly and draw no ornaments. Ornaments are code-drawn after the frames: dark
+warm outline, teal waves with cream foam, gold scrolls. Bands repainted often (bottom
+bar, drawer, sheet) are rasterised once per size in `WaveBandCached`, so scrolling costs
+the same as before. Body text keeps the Wii U ink; secondary text uses the style's
+warm grey; the selection cursor keeps the Wii U cyan.
+
+## Banner video
+
+`VideoBanner` decodes `assets/games/<game>/banner.mp4` (embedded; copied once to
+`%TEMP%\WiiUAchievements-media`) with Windows Media Foundation (`mfplat`,
+`mfreadwrite`, part of Windows) on a background MTA thread into a double buffer.
+It shows the first frame at once, plays at the file's pace only while ambient
+animation runs (window active, setting on) and pauses otherwise, so it costs nothing
+while you play in Cemu. A key-frame seek is decoded forward to the requested time.
+The picture is fitted to the banner height around a focus box (island from palm tops
+to the jetty) and anchored right of the title; when the banner is wider, the outer
+columns of a tiny blurred copy continue sky and sea, and an alpha feather blends the
+sharp picture into them. A sea-blue veil keeps the title readable. If Media
+Foundation is unavailable (Mono, Windows N/Server without media features) or any
+frame fails, the original drawn `OceanBanner` is used.
 
 **2026-10-30 — owner icons, rarity frames and game styles.** The 28 icons supplied
 by the project owner replace the medals of the objectives whose titles they carry.
@@ -50,6 +90,9 @@ cel-shaded sea banner for the game.
   `WiiUAchievements.Games.<game>.<path>`; the EXE needs no files beside it. Add
   more such art only at the owner's explicit request. The icons depict the game's
   world: keep that in mind before any public redistribution.
+- **Owner video (exception, 2026-10-30).** `assets/games/wind-waker-hd/banner.mp4` is
+  the owner's 640×360 H.264 wallpaper (5 min 18 s), audio removed with
+  `ffmpeg -an -c:v copy` (4.06 MB). It is third-party footage of the game's world.
 - **Font:** Nunito Regular/Bold/ExtraBold, © The Nunito Project Authors, SIL Open
   Font License 1.1 (`assets/fonts/OFL.txt`). The three static TTFs come from the
   Google Fonts API. `build.ps1` embeds them as manifest resources named
@@ -70,6 +113,7 @@ cel-shaded sea banner for the game.
 | `src/GameStyle.cs` | Per-game palette, embedded artwork loader (icons, frames, sky) and the game's repeating motif. |
 | `src/Medals.cs` | `Art` (rule → rarity, icon or glyph) and `Medals`: bounded cache of rasterised medals per size and locked state. |
 | `src/Glyphs.cs` | Original cel-shaded item glyphs and the explicit Wind Waker ID → glyph table, plus the number plate for series. |
+| `src/VideoBanner.cs` | Media Foundation banner video: background decoding, pause/resume, focus fit, blurred side fill, feathered edges. |
 | `src/Banner.cs` | `OceanBanner`: cached sky layer plus animated clouds, swell rows, foam and sparkles. |
 | `src/Notification.cs` | `ToastForm` unlock popup, `Layered` (UpdateLayeredWindow) and `Chime`. |
 
