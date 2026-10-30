@@ -26,8 +26,9 @@ Nessuna implementazione della decompilazione è stata incorporata.
 Prima della ripresa servono almeno 750 ms di contesto coerente, poi valgono le
 normali conferme del motore. Menu, memoria indisponibile, attore sostituito senza
 una transizione osservata o campioni incoerenti azzerano le condizioni in corso;
-lo stato persistito non viene eliminato. Un salvataggio già avanzato non assegna
-retroattivamente i suoi oggetti. La demo non inventa questi campi.
+lo stato persistito non viene eliminato. Dal 30 ottobre il motore reale riconosce
+anche le condizioni già soddisfatte dopo stabilizzazione e tre conferme; vedi
+[recupero dei progressi](PROGRESS-RECOVERY.md). La demo non inventa questi campi.
 
 Un normale cambio d'area con richiesta osservata mentre il mondo era valido può
 conservare gli obiettivi già armati: le conferme temporanee sono azzerate e

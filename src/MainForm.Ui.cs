@@ -765,7 +765,7 @@ namespace WiiUAchievements
             }
             if (unlock != null)
             {
-                string text = "Sbloccato il " + unlock.Utc.ToLocalTime().ToString("d MMMM 'alle' HH:mm", Italian);
+                string text = "Registrato il " + unlock.Utc.ToLocalTime().ToString("d MMMM 'alle' HH:mm", Italian);
                 float x = centered ? r.X + (r.Width - Measure(text, font).Width - 22) / 2 : r.X;
                 var check = new RectangleF(x, r.Y + (r.Height - 16) / 2, 16, 16);
                 using (var b = new SolidBrush(Theme.Success)) g.FillEllipse(b, check);

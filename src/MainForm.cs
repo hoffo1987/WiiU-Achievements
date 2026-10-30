@@ -21,6 +21,7 @@ namespace WiiUAchievements
         readonly Queue<PendingToast> toasts = new Queue<PendingToast>();
         readonly List<string> logLines = new List<string>();
         readonly string root, dataRoot;
+        readonly string[] legacyDataDirectories;
         List<Achievement> rules;
         GameDefinition selectedGame = GameCatalog.Default;
         GameProfile activeProfile;
@@ -49,9 +50,13 @@ namespace WiiUAchievements
         StatusKind statusKind;
 
         public MainForm(bool startDemo, bool autoConnect)
+            : this(startDemo, autoConnect, null) { }
+        public MainForm(bool startDemo, bool autoConnect, string isolatedDataDirectory)
         {
             root = AppDomain.CurrentDomain.BaseDirectory;
-            dataRoot = Path.Combine(root, "data");
+            dataRoot = Path.GetFullPath(isolatedDataDirectory ?? UserData.DefaultDirectory);
+            legacyDataDirectories = isolatedDataDirectory == null ? UserData.LegacyDirectories(root) : new string[0];
+            if (isolatedDataDirectory == null) UserData.ImportSettings(dataRoot, legacyDataDirectories);
             cloud = new CloudSync(dataRoot);
             cloudProject.Text = cloud.ProjectId ?? CloudProject.Id; cloudApiKey.Text = cloud.ApiKey ?? CloudProject.WebApiKey; cloudEmail.Text = cloud.Email ?? "";
             if (cloud.Warning != null) cloudMessage = cloud.Warning;
@@ -69,6 +74,7 @@ namespace WiiUAchievements
             cemuPath.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Cemu_2.6", "Cemu.exe");
             player.Text = "Giocatore 1";
             LoadSettings();
+            RestoreProgressView();
             player.TextChanged += delegate
             {
                 if (!FieldsEditable) return;
@@ -102,6 +108,20 @@ namespace WiiUAchievements
         {
             SafeXml.AtomicSave(new XDocument(new XElement("settings", new XElement("cemu", cemuPath.Text), new XElement("player", player.Text), new XElement("game", selectedGame.Id),
                 new XElement("sound", soundOn ? "true" : "false"), new XElement("ambient", ambientOn ? "true" : "false"))), Path.Combine(dataRoot, "settings.xml"));
+        }
+        ProgressStore OpenProgress(string fingerprint)
+        {
+            var saved = new ProgressStore(Path.Combine(dataRoot, "progress"), player.Text, fingerprint, selectedGame.SetRevision);
+            int imported = UserData.ImportProgress(saved, legacyDataDirectories, rules.Where(a => !a.IsPlanned).Select(a => a.Id));
+            if (imported > 0) Log("Recuperati " + imported + " sblocchi dalle versioni precedenti, con le date originali.");
+            return saved;
+        }
+        void RestoreProgressView()
+        {
+            if (selectedGame.Profiles.Count != 1) return;
+            var profile = selectedGame.Profiles[0];
+            try { progress = OpenProgress(profile.TitleId + "|" + profile.TitleVersion + "|" + profile.RpxHash); }
+            catch (Exception ex) { progress = null; Log("Progressi non caricati: " + ex.Message); }
         }
         void SetStatus(string title, string subtitle, StatusKind kind)
         {
@@ -149,8 +169,8 @@ namespace WiiUAchievements
                 if (!bases.Contains(session.GuestBase)) throw new InvalidOperationException("Il log e la memoria del processo non corrispondono. Ricollega dopo l'avvio del gioco.");
                 guestBase = session.GuestBase;
                 var sample = gameReader.Read(attached, guestBase);
-                progress = new ProgressStore(Path.Combine(dataRoot, "progress"), player.Text, session.Fingerprint, selectedGame.SetRevision);
-                engine = new AchievementEngine(rules, progress);
+                progress = OpenProgress(session.Fingerprint);
+                engine = new AchievementEngine(rules, progress, AchievementRecognition.IncludeExistingSave);
                 engine.Update(sample);
                 SaveSettings();
                 memory = attached; attached = null; demo = false; paused = false; recording = true;
@@ -162,6 +182,7 @@ namespace WiiUAchievements
                 hint = DefaultHint;
                 Log(selectedGame.Title + " · " + activeProfile.Label + " riconosciuta. " + (engine.WaitingForGameplay ? "Attesa automatica della partita." : sample.Rupees + " rupie, " + (sample.Health / 4m) + "/" + (sample.MaxHealth / 4m) + " cuori."));
                 if (progress.Warning != null) Log(progress.Warning);
+                SyncCloud();
             }
             catch (Exception ex)
             {
@@ -278,9 +299,10 @@ namespace WiiUAchievements
                 if (statusTitle == "Attesa automatica") SetRecordingStatus();
                 foreach (var a in awarded)
                 {
-                    Log((demo ? "[DEMO] " : a.Experimental ? "[TEST] " : "") + "Sbloccato: " + a.Title + " (+" + a.Points + ")");
+                    bool fromSave = engine.RecognizedFromSave(a.Id);
+                    Log((demo ? "[DEMO] " : a.Experimental ? "[TEST] " : "") + (fromSave ? "Riconosciuto dal salvataggio: " : "Sbloccato: ") + a.Title + " (+" + a.Points + ")");
 
-                    toasts.Enqueue(new PendingToast { Achievement = a, Header = demo ? "DEMO · OBIETTIVO SBLOCCATO" : a.Experimental ? "SBLOCCATO · SPERIMENTALE" : "OBIETTIVO SBLOCCATO" });
+                    toasts.Enqueue(new PendingToast { Achievement = a, Header = demo ? "DEMO · OBIETTIVO SBLOCCATO" : fromSave ? "RICONOSCIUTO DAL SALVATAGGIO" : a.Experimental ? "SBLOCCATO · SPERIMENTALE" : "OBIETTIVO SBLOCCATO" });
                     Celebrate(a); RefreshList();
                 }
                 UpdateStats(sample);

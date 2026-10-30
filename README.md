@@ -1,5 +1,12 @@
 # Wii U Achievements — alpha 0.3
 
+**Progressi corretti (30 ottobre 2026):** gli aggiornamenti ora condividono un
+archivio stabile in `%LOCALAPPDATA%\WiiUAchievements`, recuperano gli sblocchi
+salvati nelle vecchie build e mostrano gli obiettivi ottenuti anche senza Cemu.
+Gli obiettivi già soddisfatti nel salvataggio vengono riconosciuti dopo la
+stabilizzazione della partita. Vedi [recupero e limiti](docs/PROGRESS-RECOVERY.md).
+
+
 **Caricamenti automatici (30 ottobre 2026):** la build corrente è in
 `build-check/firebase-final/`. Puoi collegarti anche dalla selezione file e
 lasciare l'app attiva durante i caricamenti; attesa, ripresa e ricollegamento
@@ -35,7 +42,7 @@ La build corretta in `build-check/scroll-fix/` usa una cache limitata delle
 schede per rendere fluido lo scorrimento. **La tunica verde ora è attiva**:
 carica il salvataggio precedente con l'app scollegata, collega Cemu e attendi
 un secondo prima di parlare con la nonna. Una tunica già posseduta al collegamento
-non viene assegnata retroattivamente. Quella versione richiedeva Pausa/Scollega;
+non veniva assegnata retroattivamente in quella versione. Quella versione richiedeva Pausa/Scollega;
 la build corrente gestisce automaticamente i flussi di caricamento verificati. Gli altri 93 traguardi non attivi rimangono esplicitamente distinti.
 
 ## Repository e copia locale
@@ -49,7 +56,8 @@ test indicati sotto, controlla `git diff` e `git status`, quindi crea un commit
 e invialo con `git push`. Se il pull segnala una divergenza, integra le modifiche
 senza sovrascrivere la cronologia con un force push.
 
-`data/` rimane locale: contiene impostazioni e progressi e non viene pubblicata.
+I dati personali in `%LOCALAPPDATA%\WiiUAchievements` e le vecchie cartelle
+`data/` restano locali e non vengono pubblicati.
 L'eseguibile si ricompila con `build.ps1`; gli archivi da distribuire si generano
 con `package.ps1`. Conserva il font e la relativa licenza presenti nella repo.
 
@@ -118,7 +126,7 @@ Non servono Python, AutoHotkey, EmuHook, un account o una connessione Internet. 
 
 ## Interfaccia e comandi
 
-- Su ogni scheda c'è lo stato dell'obiettivo: sbloccato con data, avanzamento in tempo reale, oppure «Soglia già raggiunta all’avvio». In quest'ultimo caso l'obiettivo non si sblocca finché il valore non rimane sotto la soglia per tre campioni validi e poi la raggiunge per altri tre campioni.
+- Ogni scheda mostra lo sblocco registrato e la data, l’avanzamento oppure l’attesa della verifica. Un obiettivo già presente nel salvataggio viene riconosciuto dopo la stabilizzazione, senza doverlo ripetere.
 - **Impostazioni:** percorso di Cemu, profilo locale e suono di sblocco. Contiene anche le animazioni del banner e il pulsante **Prova notifica**, utile per controllare che la notifica compaia sopra il gioco nella tua modalità a schermo intero.
 - Le animazioni di sfondo si fermano quando la finestra non è attiva, quindi non consumano CPU mentre giochi.
 
@@ -150,15 +158,21 @@ La lettura di sei byte non è una fotografia atomica dell'intero gioco. Il motor
 
 ## Regole e progressi
 
-All'avvio viene acquisita una baseline: un obiettivo già soddisfatto non si sblocca automaticamente caricando una partita avanzata. Il valore deve prima restare inferiore alla soglia per tre campioni consecutivi validi e poi raggiungerla per altri tre campioni durante il monitoraggio. Un singolo valore basso anomalo non basta ad abilitare lo sblocco. Ad esempio, **Primi spiccioli** richiede il passaggio da meno di 10 ad almeno 10 rupie nel portafoglio.
+La partita deve essere giocabile e stabile per 750 ms; poi tre campioni validi
+consecutivi confermano la condizione. Questo vale anche per oggetti, capacità e
+soglie già presenti al collegamento o dopo un caricamento. Gli sblocchi importati
+dall’archivio conservano la data originale; una condizione appena riconosciuta
+registra l’ora della verifica. La demo mantiene il precedente rilevamento dei
+passaggi sotto/sopra soglia.
 
 Una disconnessione, un campione non valido o una pausa di campionamento superiore a un secondo azzerano le condizioni in corso. Le ricompense già salvate restano disponibili.
 
-I progressi sono in `data/progress/`, separati per nome del profilo, titolo, versione, hash RPX e revisione del set. Gli obiettivi maturati nello stesso campione vengono salvati insieme, prima di notificare qualsiasi sblocco. La scrittura usa un file temporaneo e la sostituzione atomica; il precedente file rimane come backup `.bak`. Se il file è danneggiato, viene conservato prima del recupero dal backup.
+I progressi sono in `%LOCALAPPDATA%\WiiUAchievements\progress/`, separati per nome del profilo, titolo, versione, hash RPX e revisione del set. Gli obiettivi maturati nello stesso campione vengono salvati insieme, prima di notificare qualsiasi sblocco. La scrittura usa un file temporaneo e la sostituzione atomica; il precedente file rimane come backup `.bak`. Se il file è danneggiato, viene conservato prima del recupero dal backup.
 
 Per una nuova partita scegli un altro profilo locale. La build corrente sospende
 e riprende automaticamente il rilevamento usando scena, richiesta di transizione
-e riferimenti di Link. I caricamenti già avanzati acquisiscono una nuova baseline.
+e riferimenti di Link. Dopo un caricamento riconosce anche le condizioni già
+soddisfatte, soltanto dopo stabilizzazione e conferme valide.
 Gli sblocchi salvati restano. Lo slot non cambia l'identità del profilo locale;
 vedi [stati automatici e prove](docs/AUTOMATIC-LOADS.md). Pausa/Scollega rimangono
 comandi facoltativi. Non è presente una modalità hardcore o una verifica anticheat;
@@ -207,6 +221,6 @@ Il lettore di produzione apre il processo con `PROCESS_QUERY_INFORMATION | PROCE
 Il programma è un'implementazione originale. Non incorpora EmuHook, altri trainer, codice di gioco o file di Nintendo. Lo stile grafico richiama i menu Wii U, ma icone, medaglie, banner e suono sono creati dal codice.
 
 Per trasferire i tuoi progressi, chiudi l'app e copia separatamente
-`data/progress/` nella nuova cartella. Mantieni lo stesso nome del profilo locale.
-Non serve copiare `data/settings.xml`, che contiene il percorso di Cemu del PC
+`%LOCALAPPDATA%\WiiUAchievements\progress/` nella stessa posizione sul nuovo PC. Mantieni lo stesso nome del profilo locale.
+Non serve copiare `%LOCALAPPDATA%\WiiUAchievements\settings.xml`, che contiene il percorso di Cemu del PC
 precedente. Non è ancora stata scelta una licenza di redistribuzione pubblica.

@@ -270,6 +270,12 @@ namespace WiiUAchievements
         }
         void Load(string file)
         {
+            var entries = ReadRecords(file);
+            unlocked.Clear();
+            foreach (var item in entries) unlocked.Add(item.Key, item.Value);
+        }
+        Dictionary<string, Unlock> ReadRecords(string file)
+        {
             var doc = SafeXml.Load(file);
             if (doc.Root == null || doc.Root.Name != "progress" || (string)doc.Root.Attribute("identity") != identity)
                 throw new InvalidDataException("Identità dei progressi non valida.");
@@ -280,8 +286,16 @@ namespace WiiUAchievements
                 if (String.IsNullOrWhiteSpace(id) || temp.ContainsKey(id)) throw new InvalidDataException("Sblocco non valido.");
                 temp.Add(id, new Unlock { Id = id, Utc = DateTime.Parse((string)x.Attribute("utc"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToUniversalTime() });
             }
-            unlocked.Clear();
-            foreach (var item in temp) unlocked.Add(item.Key, item.Value);
+            return temp;
+        }
+        public bool ImportLegacy(string directory, IEnumerable<string> allowedIds)
+        {
+            string source = Path.Combine(directory, Path.GetFileName(path));
+            if (String.Equals(Path.GetFullPath(source), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase) || !File.Exists(source)) return false;
+            var allowed = new HashSet<string>(allowedIds, StringComparer.Ordinal);
+            // Parse against this exact profile/game/revision, without rewriting donors.
+            var entries = ReadRecords(source).Values.Where(x => allowed.Contains(x.Id));
+            return Merge(entries, allowed);
         }
         public bool Contains(string id) { return unlocked.ContainsKey(id); }
         public string Identity { get { return identity; } }
@@ -329,6 +343,7 @@ namespace WiiUAchievements
     }
 
     public enum AchievementPhase { WaitingForBaseline, Stabilizing, AlreadySatisfied, Tracking, Confirming, Unlocked, PendingValidation }
+    public enum AchievementRecognition { NewEventsOnly, IncludeExistingSave }
     public sealed class AchievementStatus
     {
         public AchievementPhase Phase { get; internal set; }
@@ -339,6 +354,8 @@ namespace WiiUAchievements
     {
         readonly List<Achievement> achievements;
         readonly ProgressStore store;
+        readonly AchievementRecognition recognition;
+        readonly HashSet<string> recognizedExisting = new HashSet<string>();
         readonly Dictionary<string, bool> armed = new Dictionary<string, bool>();
         readonly Dictionary<string, int> streak = new Dictionary<string, int>();
         readonly Dictionary<string, int> below = new Dictionary<string, int>();
@@ -351,12 +368,16 @@ namespace WiiUAchievements
         public bool WaitingForGameplay { get { return gameplay.Waiting; } }
         public string GameplayMessage { get { return gameplay.Message; } }
         public AchievementEngine(List<Achievement> rules, ProgressStore progress)
+            : this(rules, progress, AchievementRecognition.NewEventsOnly) { }
+        public AchievementEngine(List<Achievement> rules, ProgressStore progress, AchievementRecognition recognition)
         {
             if (rules == null || progress == null) throw new ArgumentNullException(rules == null ? "rules" : "progress");
             if (rules.Any(a => a == null || String.IsNullOrWhiteSpace(a.Id)) || rules.Select(a => a.Id).Distinct().Count() != rules.Count)
                 throw new ArgumentException("Regole duplicate o non valide.");
-            achievements = new List<Achievement>(rules); store = progress; Reset();
+            if (!Enum.IsDefined(typeof(AchievementRecognition), recognition)) throw new ArgumentException("Modalità di riconoscimento non valida.");
+            achievements = new List<Achievement>(rules); store = progress; this.recognition = recognition; Reset();
         }
+        public bool RecognizedFromSave(string id) { return recognizedExisting.Contains(id); }
         void SetState(string id, AchievementPhase phase, int confirmations)
         {
             AchievementStatus old;
@@ -372,6 +393,7 @@ namespace WiiUAchievements
         public void Reset() { gameplay.Reset(); ResetConditions(); }
         void ResetConditions()
         {
+            recognizedExisting.Clear();
             lastSample = null;
             lastProgression = null;
             foreach (var a in achievements)
@@ -382,6 +404,7 @@ namespace WiiUAchievements
         }
         public List<Achievement> Update(GameSnapshot s)
         {
+            recognizedExisting.Clear();
             try
             {
                 if (s == null) throw new ArgumentNullException("s");
@@ -424,11 +447,14 @@ namespace WiiUAchievements
                     continue;
                 }
                 below[a.Id] = 0;
-                if (!armed[a.Id]) { SetState(a.Id, AchievementPhase.AlreadySatisfied, 0); continue; }
+                bool existing = !armed[a.Id];
+                if (existing && (recognition != AchievementRecognition.IncludeExistingSave || s.Context == null))
+                { SetState(a.Id, AchievementPhase.AlreadySatisfied, 0); continue; }
                 streak[a.Id]++;
                 SetState(a.Id, AchievementPhase.Confirming, streak[a.Id]);
                 if (streak[a.Id] < RequiredSamples) continue;
                 awards.Add(a);
+                if (existing) recognizedExisting.Add(a.Id);
             }
             try { store.AwardMany(awards.Select(a => a.Id), s.Utc); }
             catch { Reset(); throw; }

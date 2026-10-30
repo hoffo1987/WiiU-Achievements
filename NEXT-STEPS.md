@@ -1,5 +1,11 @@
 # Prossimo ciclo di sviluppo
 
+La correzione dei progressi del 30 ottobre usa un archivio comune a tutte le
+versioni, recupera gli ID dalle vecchie build senza alterarne le date e riconosce
+le condizioni già soddisfatte nel salvataggio. La vecchia politica senza sblocchi
+retroattivi è superata per il gioco reale. Vedi `docs/PROGRESS-RECOVERY.md`.
+
+
 Le correzioni del 30 ottobre 2026 ripristinano build e pacchetto, proteggono le
 credenziali e completano il client cloud opzionale. Vedi `docs/CLOUD.md`.
 Il progetto Firebase esistente è ora utilizzabile: regole personali pubblicate,

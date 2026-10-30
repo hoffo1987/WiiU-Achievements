@@ -3,7 +3,7 @@
 ## Runtime flow
 
 `Program.Main` enables WinForms and holds a named mutex derived from the app
-folder (`--preview-toast=<png>` renders one popup frame and exits before that). `MainForm` loads `achievements.xml`, then waits for a connection request
+user-data directory (`--preview-toast=<png>` renders one popup frame and exits before that). `MainForm` loads `achievements.xml`, then waits for a connection request
 (or connects on `--connect`). `--demo` supplies synthetic snapshots with its own
 progress directory. `--preview=<absolute PNG path>` closes the UI after rendering
 an internal preview; it is a developer aid, not a game screenshot facility.
@@ -99,7 +99,13 @@ presentation; rendering never alters sampling or persistence.
 `AchievementEngine` evaluates snapshots without accessing the process or UI.
 For each locked rule it maintains an armed flag and a consecutive-match count:
 
-- A baseline at or above the threshold does not award or arm that rule.
+- Production explicitly uses `IncludeExistingSave`: a met condition in a real,
+  ready gameplay context earns after three coherent confirmations, even if no
+  below-threshold baseline was observed. The gameplay gate still excludes menus,
+  loads and unstable contexts. Newly recognized conditions record observation
+  time and use a distinct notification. Already stored IDs retain their dates.
+- The two-argument engine constructor retains `NewEventsOnly` for legacy callers,
+  demos and regression checks. In that mode a met baseline does not award/arm.
 - Three consecutive below-threshold values arm the rule; a single low glitch
   cannot arm an already satisfied save. Below-threshold samples also clear a
   pending match count.
@@ -166,12 +172,17 @@ configured and verified separately. See [CLOUD.md](CLOUD.md).
 
 ## Persistence contract
 
-All paths are relative to the executable folder:
+Production paths are relative to `%LOCALAPPDATA%\WiiUAchievements`, shared by
+release folders. `UserData` imports exact-identity legacy entries without
+rewriting sources or existing timestamps; startup loads the saved progress view.
+Explicit data directories (UI tests, previews, `--data-dir=`) skip legacy discovery.
 
-- `data/settings.xml`: local Cemu path, profile name, selected catalog `game` ID, and the optional `sound` and
+Paths under that user-data directory:
+
+- `settings.xml`: local Cemu path, profile name, selected catalog `game` ID, and the optional `sound` and
   `ambient` UI toggles. Missing toggles default to enabled.
-- `data/progress/<key>.xml`: earned IDs with UTC timestamps.
-- `data/demo/<random ID>/`: isolated synthetic-session progress.
+- `progress/<key>.xml`: earned IDs with UTC timestamps.
+- `demo/<random ID>/`: isolated synthetic-session progress.
 
 The identity string is exactly:
 
@@ -188,8 +199,9 @@ Damaged originals are preserved before recovery.
 
 Stable IDs are the persistence interface. Cosmetic renames need not change IDs.
 Changing IDs or the revision requires an explicit compatibility/migration plan.
-The mutex only prevents multiple instances from the **same application folder**;
-it does not provide cross-folder coordination or shared-file multi-writer locking.
+The mutex is keyed by the canonical user-data directory, so different release
+folders using the same archive cannot run concurrently. Different explicit test
+roots remain independent. Old binaries still use their legacy private archive.
 
 ## Extending without losing the baseline
 

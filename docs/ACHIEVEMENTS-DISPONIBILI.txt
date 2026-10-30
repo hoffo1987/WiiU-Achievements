@@ -1,0 +1,357 @@
+﻿WII U ACHIEVEMENTS - THE WIND WAKER HD
+Achievement disponibili nella build di sviluppo - 29 ottobre 2026
+
+70 obiettivi eseguibili: 17 attivi di base e 53 con rilevamento sperimentale.
+I 40 obiettivi ancora non implementati sono esclusi da questo elenco.
+Rarità degli obiettivi eseguibili: Argento: 25 | Bronzo: 41 | Oro: 4. Nessun platino.
+
+COME USARE QUESTO ELENCO
+Configurazione supportata: Cemu 2.6, Wind Waker HD EUR v0, RPX cdc68acd.
+Collega e avvia la registrazione prima di ottenere un oggetto o raggiungere una soglia: gli obiettivi non vengono assegnati retroattivamente caricando un salvataggio già avanzato.
+Metti in pausa o disconnetti la registrazione prima di caricare un salvataggio.
+SPERIMENTALE = il rilevamento è implementato e può sbloccare, ma attende conferma durante una partita reale. Non è garantito per tutto il gioco.
+ATTIVO = regola di base eseguibile; non significa che ogni soglia sia stata verificata nel gioco reale. Gli sblocchi reali confermati finora riguardano le prime 10 rupie e la tunica verde.
+La rarità è editoriale, indipendente dai punti e dallo stato del rilevamento.
+ATTENZIONE: sono presenti anticipazioni sulla storia e sugli oggetti.
+
+============================================================
+01 · OUTSET
+============================================================
+
+01. Il colore dell'avventura
+    Obiettivo: Ricevi la tunica verde dalla nonna all'inizio dell'avventura.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+02. Un regalo all'orizzonte
+    Obiettivo: Ricevi il cannocchiale da tua sorella.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+03. La prima lama
+    Obiettivo: Ottieni la prima spada dell'eroe.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+04. Un ricordo di casa
+    Obiettivo: Ricevi lo scudo dell'eroe dalla nonna.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+02 · PIRATI
+============================================================
+
+05. A scuola di pirateria
+    Obiettivo: Ottieni la borsa del bottino sulla nave dei pirati.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+06. Una fuga movimentata
+    Obiettivo: Concludi la prima visita alla Fortezza dei Demoni e incontra Re Drakar.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+03 · WINDFALL
+============================================================
+
+07. Vento in poppa
+    Obiettivo: Ottieni la vela normale di Re Drakar.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+08. Uno sguardo sul mare
+    Obiettivo: Trova la macchina fotografica sull'isola di Windfall.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+09. Ricordi a colori
+    Obiettivo: Ottieni il potenziamento a colori della macchina fotografica.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+10. Un boccone per tutti
+    Obiettivo: Acquista la borsa delle esche.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+04 · DRAGO
+============================================================
+
+11. La bacchetta del vento
+    Obiettivo: Ricevi il Wind Waker da Re Drakar.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+12. Dirigere la brezza
+    Obiettivo: Impara la Melodia del Vento presso il santuario sull'Isola del Drago.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+13. Posta in viaggio
+    Obiettivo: Ottieni la borsa del postino.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+14. Appigli da pirata
+    Obiettivo: Ottieni il rampino nella Caverna del Drago.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+15. Il drago può riposare
+    Obiettivo: Sconfiggi Gohma e ricevi la perla di Din.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+============================================================
+05 · BOSCO
+============================================================
+
+16. Il primo volo
+    Obiettivo: Ricevi la foglia Deku dal Grande Albero Deku.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+17. Andata e ritorno
+    Obiettivo: Trova il boomerang nei Boschi Proibiti.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+18. Il bosco ritrova la voce
+    Obiettivo: Libera Makar da Kalle Demos e ricevi la perla di Farore.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+============================================================
+06 · JABUN
+============================================================
+
+19. Un carico esplosivo
+    Obiettivo: Ottieni la borsa delle bombe.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+20. Una luce nella tempesta
+    Obiettivo: Raggiungi Jabun e ottieni la perla di Nayru.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+21. Una zuppa che sa di casa
+    Obiettivo: Cura la nonna con una fata e ricevi la sua zuppa.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+07 · TORRE
+============================================================
+
+22. Una voce per le statue
+    Obiettivo: Impara la Melodia del Burattino nella Torre degli Dei.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+23. Mira da eroe
+    Obiettivo: Trova l'arco dell'eroe nella Torre degli Dei.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+24. Il giudizio degli Dei
+    Obiettivo: Sconfiggi Gohdan nella Torre degli Dei.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+============================================================
+08 · HYRULE
+============================================================
+
+25. Una lama dal passato
+    Obiettivo: Ottieni la Spada Suprema per la prima volta.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+26. Le vie del ciclone
+    Obiettivo: Impara la Melodia del Ciclone.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+09 · FORTEZZA
+============================================================
+
+27. Un colpo deciso
+    Obiettivo: Ottieni il martello alla Fortezza dei Demoni.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+28. Mai più in gabbia
+    Obiettivo: Sconfiggi Helmaroc King durante il ritorno alla Fortezza dei Demoni.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+29. L'eredità del regno
+    Obiettivo: Assisti alla rivelazione dell'identità di Zelda nel castello.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+============================================================
+10 · TERRA
+============================================================
+
+30. Fuoco e ghiaccio
+    Obiettivo: Ricevi le frecce di fuoco e di ghiaccio dalla Regina delle Fate.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+31. La forza sotto la lava
+    Obiettivo: Ottieni i bracciali della forza nella Montagna di Fuoco.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+32. Piedi ben piantati
+    Obiettivo: Ottieni gli stivali di ferro sull'Isola Gelata.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+33. Note dalla terra
+    Obiettivo: Impara la melodia che apre la via del Tempio della Terra.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+34. Riflessi d'eroe
+    Obiettivo: Trova lo scudo specchio nel Tempio della Terra.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+35. Luce nelle tenebre
+    Obiettivo: Sconfiggi Jalhalla e completa il Tempio della Terra.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+============================================================
+11 · VENTO
+============================================================
+
+36. Note dal vento
+    Obiettivo: Impara la melodia che apre la via del Tempio del Vento.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+37. Nessuna distanza
+    Obiettivo: Trova l'arpione nel Tempio del Vento.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+38. Il vento torna a cantare
+    Obiettivo: Sconfiggi Molgera e restituisci pieno potere alla Spada Suprema.
+    Rarità: Oro | Rilevamento: SPERIMENTALE
+
+============================================================
+12 · TRIFORZA
+============================================================
+
+39. Il coraggio in frammenti
+    Obiettivo: Ottieni il primo frammento della Triforza del Coraggio.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+40. Il coraggio ricomposto
+    Obiettivo: Raccogli tutti gli otto frammenti della Triforza del Coraggio.
+    Rarità: Oro | Rilevamento: SPERIMENTALE
+
+============================================================
+13 · FINALE
+============================================================
+
+41. Oltre l'ultima barriera
+    Obiettivo: Abbatti la barriera che blocca la strada verso la Torre di Ganon.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+42. Una freccia di luce
+    Obiettivo: Ottieni le frecce di luce nella Torre di Ganon.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+14 · EXTRA
+============================================================
+
+43. Il vento mi segue
+    Obiettivo: Ottieni la vela veloce.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+44. Una protezione preziosa
+    Obiettivo: Ottieni l'armatura magica.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+45. Una riserva di magia
+    Obiettivo: Fai raddoppiare la capacità della barra magica dalla Grande Fata.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+46. Artificiere del mare
+    Obiettivo: Porta la capacità massima delle bombe a 99.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+47. Una faretra senza fondo
+    Obiettivo: Porta la capacità massima delle frecce a 99.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+48. Spazio per ogni tesoro
+    Obiettivo: Ottieni il portafoglio con capacità di 5000 rupie.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+49. Il mare non ha segreti
+    Obiettivo: Completa tutti i 49 settori della carta nautica.
+    Rarità: Oro | Rilevamento: SPERIMENTALE
+
+50. Metà del Grande Mare
+    Obiettivo: Fai disegnare almeno 25 dei 49 settori della carta nautica.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+51. La rotta prende forma
+    Obiettivo: Fai disegnare al pescatore almeno 10 settori della carta nautica.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+52. Pronto a ogni imprevisto
+    Obiettivo: Ottieni tutte le quattro bottiglie.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+53. Un repertorio completo
+    Obiettivo: Impara tutte le sei melodie del Wind Waker.
+    Rarità: Argento | Rilevamento: SPERIMENTALE
+
+54. Il ritmo del giorno
+    Obiettivo: Impara da Tott la Canzone del Giorno e della Notte.
+    Rarità: Bronzo | Rilevamento: SPERIMENTALE
+
+============================================================
+15 · CRESCITA
+============================================================
+
+55. Un cuore in più
+    Obiettivo: Porta la capacità di vita da meno di 4 ad almeno 4 cuori.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+56. Pronto a salpare
+    Obiettivo: Porta la capacità di vita da meno di 5 ad almeno 5 cuori.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+57. Cuore d'avventura
+    Obiettivo: Porta la capacità di vita da meno di 6 ad almeno 6 cuori.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+58. Tempra da marinaio
+    Obiettivo: Porta la capacità di vita da meno di 8 ad almeno 8 cuori.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+59. Sempre più coraggioso
+    Obiettivo: Porta la capacità di vita da meno di 10 ad almeno 10 cuori.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+60. Coraggio d'alto mare
+    Obiettivo: Porta la capacità di vita da meno di 12 ad almeno 12 cuori.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+61. Il coraggio cresce
+    Obiettivo: Porta la capacità di vita da meno di 15 ad almeno 15 cuori.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+62. Quasi una leggenda
+    Obiettivo: Porta la capacità di vita da meno di 18 ad almeno 18 cuori.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+63. Un cuore leggendario
+    Obiettivo: Raggiungi 20 cuori di capacità partendo da una capacità inferiore.
+    Rarità: Oro | Rilevamento: ATTIVO
+
+64. Primi spiccioli
+    Obiettivo: Passa da meno di 10 ad almeno 10 rupie nel portafoglio.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+65. Un piccolo tesoro
+    Obiettivo: Passa da meno di 100 ad almeno 100 rupie nel portafoglio.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+66. Una borsa tintinnante
+    Obiettivo: Passa da meno di 200 ad almeno 200 rupie nel portafoglio.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+67. Il tesoro del marinaio
+    Obiettivo: Passa da meno di 500 ad almeno 500 rupie nel portafoglio.
+    Rarità: Bronzo | Rilevamento: ATTIVO
+
+68. Un mare di rupie
+    Obiettivo: Passa da meno di 1000 ad almeno 1000 rupie nel portafoglio.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+69. La fortuna del navigatore
+    Obiettivo: Passa da meno di 2500 ad almeno 2500 rupie nel portafoglio.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+70. Il forziere è pieno
+    Obiettivo: Passa da meno di 5000 a 5000 rupie nel portafoglio.
+    Rarità: Argento | Rilevamento: ATTIVO
+
+Fonte: regole eseguibili achievements.xml e achievements-story.xml, con testi, rarità e ordine di achievement-presentation.xml. Le voci pianificate non sono incluse.

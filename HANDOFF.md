@@ -1,5 +1,15 @@
 # Start here — handoff for another AI or developer
 
+**Progress recovery (2026-10-30):** supersedes earlier no-retroactive-award policy
+for real gameplay. Production now uses a shared per-user LocalApplicationData
+archive instead of EXE-local `data/`, imports exact-identity legacy awards without
+changing their dates, and shows saved unlocks before connecting. Real gameplay
+recognizes already-satisfied conditions after the existing ready-context gate
+and three confirmations; the legacy event-only mode remains for demo/regressions.
+IDs/revision/points are unchanged. See `docs/PROGRESS-RECOVERY.md`; historical
+sections below describe earlier behavior and must not override this change.
+
+
 **Automatic loads (2026-10-30):** the exact Cemu 2.6 / EUR v0 / cdc68acd reader
 now observes live-checked stage/transition/player signals, guards reads on both
 sides of the save window, and resumes after 750 ms of coherent context. Supported
@@ -227,7 +237,8 @@ rules, documentation, tests, and a per-file SHA-256 manifest. It excludes `data/
 personal settings, earned progress, logs, ROMs, and temporary artifacts.
 
 To move **your own earned progress** to another PC, close the app and copy
-`data/progress/` separately into the new app folder. Re-select Cemu on that PC.
+`%LOCALAPPDATA%\WiiUAchievements\progress/` separately to the same user-data
+location on the other PC. Re-select Cemu there; never copy `cloud.xml`.
 Use the exact same local profile name; its trimmed value is part of progress
 identity. Settings need not be copied. Renaming a profile, changing the game
 fingerprint, or changing the set revision selects a different progress file.

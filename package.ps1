@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$DestinationPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'WiiUAchievements-handoff.zip'),
     [switch]$SkipTests
 )
@@ -14,12 +14,12 @@ try {
     # cannot accidentally enter an archive simply because they are in the folder.
     $names = @('AGENTS.md', 'HANDOFF.md', 'README.md', 'NEXT-STEPS.md', '.gitignore',
         'build.ps1', 'package.ps1', 'verify-package.ps1', '.firebaserc', 'firebase.json', 'firestore.rules',
-        'src\CloudProject.cs', 'src\Gameplay.cs', 'src\CloudSync.cs', 'src\GameCatalog.cs', 'src\MainForm.Library.cs', 'src\MainForm.Tiles.cs', 'src\Core.cs', 'src\GameSession.cs', 'src\MainForm.cs', 'src\MainForm.Ui.cs', 'src\MemoryReader.cs', 'src\Program.cs',
+        'src\UserData.cs', 'src\CloudProject.cs', 'src\Gameplay.cs', 'src\CloudSync.cs', 'src\GameCatalog.cs', 'src\MainForm.Library.cs', 'src\MainForm.Tiles.cs', 'src\Core.cs', 'src\GameSession.cs', 'src\MainForm.cs', 'src\MainForm.Ui.cs', 'src\MemoryReader.cs', 'src\Program.cs',
         'src\Theme.cs', 'src\Banner.cs', 'src\Notification.cs', 'src\WindWakerProgression.cs',
         'assets\fonts\Nunito-Regular.ttf', 'assets\fonts\Nunito-Bold.ttf', 'assets\fonts\Nunito-ExtraBold.ttf', 'assets\fonts\OFL.txt',
         'docs\UI.md', 'docs\GAMES.md', 'docs\screenshots\games.png', 'docs\screenshots\paused.png', 'docs\screenshots\main.png', 'docs\screenshots\unlock.png', 'docs\screenshots\detail.png', 'docs\screenshots\settings.png', 'docs\screenshots\toast.png',
-        'tests\GameplayTests.cs', 'tests\CloudTests.cs', 'tests\CoreTests.cs', 'tests\SystemTests.cs', 'tests\ProgressionTests.cs', 'tests\UiTests.cs', 'tests\Probe.cs', 'tests\InitialItemProbe.cs', 'tests\inspect-initial.ps1', 'tests\run.ps1', 'tests\run.sh', 'tests\run-ui.ps1', 'tests\firestore-rules.cjs', 'tests\test-firestore.ps1',
-        'docs\GROK-REVIEW-2026-10-29.md', 'docs\AUTOMATIC-LOADS.md', 'docs\CLOUD.md', 'docs\ARCHITECTURE.md', 'docs\ACHIEVEMENTS.md', 'docs\PLAYTHROUGH.md', 'docs\RARITIES.md', 'docs\MEMORY-MAP.md', 'docs\VALIDATION.md', 'docs\COLLABORATION.md',
+        'tests\RecoveryTests.cs', 'tests\GameplayTests.cs', 'tests\CloudTests.cs', 'tests\CoreTests.cs', 'tests\SystemTests.cs', 'tests\ProgressionTests.cs', 'tests\UiTests.cs', 'tests\Probe.cs', 'tests\InitialItemProbe.cs', 'tests\inspect-initial.ps1', 'tests\run.ps1', 'tests\run.sh', 'tests\run-ui.ps1', 'tests\firestore-rules.cjs', 'tests\test-firestore.ps1',
+        'docs\PROGRESS-RECOVERY.md', 'docs\GROK-REVIEW-2026-10-29.md', 'docs\AUTOMATIC-LOADS.md', 'docs\CLOUD.md', 'docs\ARCHITECTURE.md', 'docs\ACHIEVEMENTS.md', 'docs\PLAYTHROUGH.md', 'docs\RARITIES.md', 'docs\MEMORY-MAP.md', 'docs\VALIDATION.md', 'docs\COLLABORATION.md',
         '.cursor\rules\project.mdc', '.github\workflows\validate.yml')
     foreach ($name in $names) {
         $source = Join-Path $PSScriptRoot $name

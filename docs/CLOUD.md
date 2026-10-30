@@ -12,7 +12,8 @@ nella propria app. Nessuna modifica alla fatturazione.
 
 Per provarlo nell'app:
 
-1. Apri la build corrente e premi **Collega Cemu** per aprire i progressi locali.
+1. Apri la build corrente: gli sblocchi archiviati sono già disponibili. Premi
+   **Collega Cemu** per riconoscere anche le condizioni del salvataggio in gioco.
 2. Premi l'ingranaggio in alto a destra, poi **Account cloud…**, accanto a
    **Prova notifica**. Se manca, apri l'eseguibile aggiornato.
 3. Project ID e Web API key pubblica sono già compilati: non modificarli.
@@ -57,10 +58,10 @@ Lo stato è visibile nella pagina account. Una sola operazione cloud può essere
 attiva per volta. Il campionamento non aspetta la rete.
 
 Il refresh token è cifrato con Windows DPAPI per l'utente corrente in
-`data/cloud.xml`, senza backup delle credenziali. Non copiare questo file tra PC:
+`%LOCALAPPDATA%\WiiUAchievements\cloud.xml`, senza backup delle credenziali. Non copiare questo file tra PC:
 effettuare di nuovo l'accesso. Il logout elimina anche vecchi `.bak`. Le vecchie
 configurazioni in chiaro vengono riscritte nel formato protetto; se prive di UID
-richiedono un nuovo accesso. Non salvare o condividere `data/`.
+richiedono un nuovo accesso. Non condividere la cartella dati personali, né le vecchie `data/`.
 
 I test del client coprono parser, rinnovo, recupero, upload, retry, persistenza e
 isolamento dei profili. Per ripetere le 34 prove delle regole senza usare dati

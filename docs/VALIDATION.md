@@ -1,5 +1,58 @@
 # Validation record and reproduction
 
+## Shared progress recovery and existing-save recognition — 2026-10-30
+
+Root cause confirmed by comparing exact-identity local progress files: the
+active build had only one entry, while earlier playthrough/rarity builds retained
+the tunic and telescope with their original timestamps. No deletion or lost
+memory offset caused those two missing awards. EXE-relative archives had split
+progress between build folders. The 100-rupee objective was absent from all those
+archives; its condition was still present in the running game.
+
+`UserData.cs` now resolves one per-Windows-user LocalApplicationData archive.
+Normal releases share that archive and an archive-keyed mutex. Legacy imports
+read only the same profile/title/version/RPX/revision filename and validate the
+embedded identity, merge allowed missing IDs atomically and retain existing dates.
+Source files and credential backups are not rewritten. Existing shared account
+and settings files are never replaced. Explicit test roots skip legacy discovery;
+previews are isolated. No game files, credentials, dumps or personal progress are
+included in the source/package.
+
+Production uses `IncludeExistingSave`; the two-argument engine constructor keeps
+legacy `NewEventsOnly` for demos and older regression callers. The production
+policy requires a real ready context, the existing 750 ms gate and three valid
+met samples. Pending targets never execute. Recorded IDs never re-award; initial
+recognition gets the observation timestamp and a distinct notification, rather
+than an invented original acquisition time. IDs, revision and points are unchanged.
+Threshold descriptions now match this policy. Experimental mappings retain their
+experimental status; this change does not certify the 53 detectors.
+
+**321 core/cloud/native checks passed**, including 23 new recovery/recognition
+checks: exact-identity union, date preservation, idempotence, unchanged donors,
+unknown-ID filtering, different profiles/revisions, spoofed identity, reopening,
+menu/unknown/contextless suppression, stable loaded recognition, missing-condition
+reset, duplicate prevention and post-reconnect dates. Existing event-only tests
+are retained as checks of that explicit legacy mode.
+**64 UI checks passed**, including offline startup display/count/date preservation
+and isolated data roots. Scroll median 3.62 ms / p95 9.44 ms over 80 frames.
+
+Live check on the existing Cemu 2.6 / EUR v0 / cdc68acd session: updated the runtime
+from a separately built/tested candidate after closing only the achievement app.
+Four legacy local files were verified unchanged by SHA256 during installation.
+The normal app migrated into the real user's shared LocalApplicationData archive,
+showed three stored awards before connecting and preserved both historical story
+timestamps exactly. After connecting read-only to the already loaded game with
+137 rupees, it automatically recorded `wallet-100`. The resulting archive contains
+four awards, including all three requested objectives; the visible app shows
+4/70 and 16 points. No manual Award or memory writes were used for this repair.
+The app was then closed and reopened normally: the shared progress file SHA256
+was unchanged and all four records remained. A read-only, exact UID/profile
+Firestore API check confirmed the app had uploaded all four IDs with matching
+recorded timestamps (within Firestore's documented precision). No admin writes
+were used to repair the user's cloud data; the production sync worker uploaded it.
+
+
+
 ## Firebase deployment and visible account entry — 2026-10-30
 
 The user explicitly authorized fixing the existing backend so they can try sync.

@@ -19,13 +19,16 @@ namespace WiiUAchievements
                 Application.SetCompatibleTextRenderingDefault(false);
                 var toastPreview = args.FirstOrDefault(a => a.StartsWith("--preview-toast="));
                 if (toastPreview != null) { SaveToastPreview(Path.GetFullPath(toastPreview.Substring(16))); return 0; }
+                var dataArgument = args.FirstOrDefault(a => a.StartsWith("--data-dir="));
+                string isolatedData = dataArgument == null ? null : Path.GetFullPath(dataArgument.Substring(11));
+                if (isolatedData == null && args.Any(a => a.StartsWith("--preview="))) isolatedData = Path.Combine(Path.GetTempPath(), "WiiUAchievements-preview-" + Guid.NewGuid().ToString("N"));
                 string instance;
-                using (var sha = SHA256.Create()) instance = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(AppDomain.CurrentDomain.BaseDirectory))).Replace("-", "").Substring(0, 24);
+                using (var sha = SHA256.Create()) instance = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(Path.GetFullPath(isolatedData ?? UserData.DefaultDirectory).TrimEnd('\\').ToUpperInvariant()))).Replace("-", "").Substring(0, 24);
                 bool first;
                 using (var mutex = new Mutex(true, "Local\\WiiUAchievements-" + instance, out first))
                 {
                 if (!first) { MessageBox.Show("Questa copia dell'app è già aperta.", "Wii U Achievements"); return 0; }
-                using (var form = new MainForm(args.Contains("--demo"), args.Contains("--connect")))
+                using (var form = new MainForm(args.Contains("--demo"), args.Contains("--connect"), isolatedData))
                 {
                     var preview = args.FirstOrDefault(a => a.StartsWith("--preview="));
                     if (preview != null)

@@ -209,7 +209,7 @@ class UiTests
             string output = args.Length == 0 ? Path.Combine(Path.GetTempPath(), "wiiua-ui-" + Guid.NewGuid().ToString("N")) : Path.GetFullPath(args[0]);
             Directory.CreateDirectory(output);
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
-            using (var form = new MainForm(false, false))
+            using (var form = new MainForm(false, false, Path.Combine(output, "app-data")))
             {
                 // This executable is built in an isolated test directory. It never attaches to Cemu.
                 Set(form, "soundOn", false); Set(form, "ambientOn", false);
@@ -327,8 +327,20 @@ class UiTests
                 Check(Get(form, "progress") == null, "Editing the local profile clears another profile's displayed unlocks");
                 form.Close();
             }
-            using (var restored = new MainForm(false, false))
+            using (var restored = new MainForm(false, false, Path.Combine(output, "app-data")))
                 Check(((GameDefinition)Get(restored, "selectedGame")).Id == GameCatalog.WindWakerId, "Unknown saved catalog IDs safely fall back to the supported default");
+            string persistentRoot = Path.Combine(output, "startup-progress");
+            var profile = GameCatalog.Default.Profiles[0];
+            var archived = new ProgressStore(Path.Combine(persistentRoot, "progress"), "Giocatore 1", profile.TitleId + "|" + profile.TitleVersion + "|" + profile.RpxHash, GameCatalog.Default.SetRevision);
+            DateTime original = DateTime.UtcNow.AddDays(-2);
+            archived.AwardMany(new[] { "story-heros-clothes", "story-telescope" }, original);
+            using (var offline = new MainForm(false, false, persistentRoot))
+            {
+                var loaded = (ProgressStore)Get(offline, "progress");
+                Check(loaded != null && loaded.Contains("story-heros-clothes") && loaded.Contains("story-telescope"), "Startup displays recorded achievements without requiring a running Cemu");
+                Check(loaded.Get("story-heros-clothes").Utc == original && (int)offline.GetType().GetProperty("UnlockedCount", Private).GetValue(offline, null) == 2, "Offline view retains original award dates and completion count");
+                Check((string)Get(offline, "dataRoot") == Path.GetFullPath(persistentRoot), "Explicit test/archive directory stays isolated from shared user data");
+            }
             Console.WriteLine("SUCCESS " + checks + " UI checks; previews: " + output); return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

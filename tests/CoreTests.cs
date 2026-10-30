@@ -106,6 +106,7 @@ class CoreTests
             SystemTests.Run(Check, temporary, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "achievements.xml"));
             ProgressionTests.Run(Check, temporary);
             GameplayTests.Run(Check, temporary);
+            RecoveryTests.Run(Check, temporary);
             CloudTests.Run(Check, temporary, portable);
             if (!portable)
             {
