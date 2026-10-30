@@ -55,8 +55,8 @@ namespace WiiUAchievements
     // lets clicks pass through to the game.
     public sealed class ToastForm : Form
     {
-        public const float Duration = 5.4f;
-        const float Edge = 30, CardW = 460, CardH = 118, InTime = 0.5f, OutTime = 0.42f;
+        public const float Duration = 5.6f;
+        const float Edge = 34, CardW = 480, CardH = 124, Panel = 132, InTime = 0.5f, OutTime = 0.42f;
         readonly Achievement achievement;
         readonly Art art;
         readonly string header;
@@ -142,9 +142,15 @@ namespace WiiUAchievements
             else { slide = 1; alpha = 1; }
         }
 
+        // Timeline: the card slides in with the game's panel; the medal pops in grey, turns
+        // like a coin to reveal its colours, then the rarity glow, rays and sparkles follow.
+        public const float TurnStart = 0.62f, TurnTime = 0.36f;
+
         // Renders one frame of the card (with room for its shadow) at time t. Also used by --preview-toast.
         public static Bitmap Render(Achievement a, Art art, string header, float t, float scale)
         {
+            var style = art.Style;
+            Color tier = Theme.TierColor(art.Tier), glow = Theme.TierGlow(art.Tier);
             var bmp = new Bitmap((int)Math.Ceiling((CardW + Edge * 2) * scale), (int)Math.Ceiling((CardH + Edge * 2) * scale), PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(bmp))
             {
@@ -153,17 +159,38 @@ namespace WiiUAchievements
                 g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 g.ScaleTransform(scale, scale);
                 var card = new RectangleF(Edge, Edge, CardW, CardH);
-                Theme.Shadow(g, card, 20, 16, 120, 6);
+                float turn = Theme.Clamp01((t - TurnStart) / TurnTime), revealed = Theme.EaseOut((t - TurnStart - TurnTime * 0.5f) / 0.5f);
+                Theme.Shadow(g, card, 22, 16, 120, 6);
+                // Rarity halo: brighter for gold and platinum, and it blooms when the medal turns.
+                int halo = (art.Tier >= Tier.Gold ? 34 : 20) + (int)(18 * revealed * (1 - Theme.Clamp01((t - 1.6f) / 1.2f)));
                 for (int i = 4; i >= 1; i--)
-                    Theme.Stroke(g, Theme.Inflate(card, i * 2.5f, i * 2.5f), 20 + i * 2.5f, Color.FromArgb(22 / i + 6, Theme.Glow), 3);
-                Theme.Fill(g, card, 20, Color.White, Color.FromArgb(236, 242, 246));
-                using (var path = Theme.Round(card, 20))
+                    Theme.Stroke(g, Theme.Inflate(card, i * 2.6f, i * 2.6f), 22 + i * 2.6f, Color.FromArgb(halo / i + 6, glow), 3);
+                Theme.Fill(g, card, 22, Color.White, Color.FromArgb(238, 243, 247));
+                var medalCenter = new PointF(card.X + Panel / 2, card.Y + card.Height / 2);
+                using (var path = Theme.Round(card, 22))
                 {
                     var state = g.Save();
                     g.SetClip(path, CombineMode.Intersect);
-                    using (var b = new LinearGradientBrush(new RectangleF(card.X, card.Y, 150, card.Height), Color.FromArgb(70, Theme.AccentSoft), Color.FromArgb(0, Theme.AccentSoft), 0f))
-                        g.FillRectangle(b, card.X, card.Y, 149, card.Height);
-                    float shine = (t - 0.62f) / 0.75f;
+                    // The game panel: open sea with drifting foam and rising bubbles for Wind Waker.
+                    var panel = new RectangleF(card.X, card.Y, Panel, card.Height);
+                    using (var b = new LinearGradientBrush(Theme.Inflate(panel, 0, 1), style.Accent, style.Deep, 90f)) g.FillRectangle(b, panel);
+                    using (var light = new GraphicsPath())
+                    {
+                        light.AddEllipse(Theme.Square(medalCenter, 120));
+                        using (var b = new PathGradientBrush(light) { CenterColor = Color.FromArgb(90 + (int)(60 * revealed), Theme.Light(glow, 0.5f)), SurroundColors = new[] { Color.FromArgb(0, glow) } }) g.FillPath(b, light);
+                    }
+                    style.Pattern(g, new RectangleF(panel.X, panel.Bottom - 30, panel.Width, 30), t * 1.4f, Color.FromArgb(80, 255, 255, 255));
+                    using (var pen = new Pen(Color.FromArgb(110, 255, 255, 255), 1.2f))
+                        for (int i = 0; i < 6; i++)
+                        {
+                            float rise = (t * 22 + i * 41) % (card.Height + 16), bubble = 3 + i % 3 * 1.6f;
+                            float bx = panel.X + 12 + i * 21 + (float)Math.Sin(t * 2 + i) * 3, by = panel.Bottom + 8 - rise;
+                            g.DrawEllipse(pen, bx, by, bubble, bubble);
+                        }
+                    using (var b = new SolidBrush(Color.FromArgb(90, 255, 255, 255))) g.FillRectangle(b, panel.Right - 1, panel.Y, 1.2f, panel.Height);
+                    using (var b = new LinearGradientBrush(new RectangleF(panel.Right, card.Y, 90, card.Height), Color.FromArgb(60, style.Soft), Color.FromArgb(0, style.Soft), 0f))
+                        g.FillRectangle(b, panel.Right, card.Y, 89, card.Height);
+                    float shine = (t - 0.95f) / 0.8f;
                     if (shine > 0 && shine < 1)
                     {
                         float sx = card.X - 120 + (card.Width + 240) * Theme.EaseInOut(shine);
@@ -172,74 +199,110 @@ namespace WiiUAchievements
                             band.AddPolygon(new[] { new PointF(sx, card.Y), new PointF(sx + 70, card.Y), new PointF(sx + 30, card.Bottom), new PointF(sx - 40, card.Bottom) });
                             using (var b = new LinearGradientBrush(new RectangleF(sx - 40, card.Y, 111, card.Height), Color.FromArgb(0, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), 0f))
                             {
-                                var blend = new ColorBlend { Positions = new[] { 0f, 0.5f, 1f }, Colors = new[] { Color.FromArgb(0, 255, 255, 255), Color.FromArgb(150, 255, 255, 255), Color.FromArgb(0, 255, 255, 255) } };
+                                var blend = new ColorBlend { Positions = new[] { 0f, 0.5f, 1f }, Colors = new[] { Color.FromArgb(0, 255, 255, 255), Color.FromArgb(140, 255, 255, 255), Color.FromArgb(0, 255, 255, 255) } };
                                 b.InterpolationColors = blend;
                                 g.FillPath(b, band);
                             }
                         }
                     }
                     float remaining = 1 - Theme.Clamp01((t - InTime) / (Duration - InTime - OutTime));
-                    using (var b = new LinearGradientBrush(new RectangleF(card.X, card.Bottom - 4, card.Width, 4), Theme.Glow, Theme.Accent, 0f))
-                        g.FillRectangle(b, card.X, card.Bottom - 4, card.Width * remaining, 4);
+                    using (var b = new LinearGradientBrush(new RectangleF(panel.Right, card.Bottom - 4, card.Width - Panel, 4), style.Glow, style.Accent, 0f))
+                        g.FillRectangle(b, panel.Right, card.Bottom - 4, (card.Width - Panel) * remaining, 4);
                     g.Restore(state);
                 }
-                Theme.Stroke(g, Theme.Inflate(card, -0.5f, -0.5f), 20, Theme.Accent, 2.2f);
+                Theme.Stroke(g, Theme.Inflate(card, -0.5f, -0.5f), 22, Theme.Mix(tier, Color.White, 0.2f), 2f);
 
-                var medalCenter = new PointF(card.X + 62, card.Y + card.Height / 2);
-                float rays = Theme.EaseOut((t - 0.2f) / 0.5f);
-                Theme.Rays(g, medalCenter, 66, t * 28, Color.FromArgb((int)(150 * rays), 255, 214, 90));
-                for (int i = 0; i < 10; i++)
+                if (turn >= 0.5f)
                 {
-                    float u = (t - 0.28f - i * 0.02f) / 1.0f;
-                    if (u <= 0 || u >= 1) continue;
-                    double ang = i * Math.PI * 2 / 10 + 0.3;
-                    float d = 30 + 44 * Theme.EaseOut(u);
-                    var p = new PointF(medalCenter.X + (float)Math.Cos(ang) * d, medalCenter.Y + (float)Math.Sin(ang) * d * 0.8f);
-                    Theme.Sparkle(g, p, 6 * (1 - u) + 1.5f, Color.FromArgb((int)(255 * (1 - u)), i % 2 == 0 ? Color.FromArgb(255, 216, 80) : Theme.Glow));
+                    Theme.Rays(g, medalCenter, 70, t * 26, Color.FromArgb((int)(165 * revealed), glow));
+                    float ring = Theme.Clamp01((t - TurnStart - TurnTime * 0.5f) / 0.6f);
+                    if (ring < 1)
+                        using (var pen = new Pen(Color.FromArgb((int)(220 * (1 - ring)), glow), 0.6f + 3.4f * (1 - ring)))
+                            g.DrawEllipse(pen, Theme.Square(medalCenter, 96 * (0.95f + 0.7f * Theme.EaseOut(ring))));
+                    for (int i = 0; i < 12; i++)
+                    {
+                        float u = (t - TurnStart - TurnTime * 0.5f - i * 0.025f) / 1.1f;
+                        if (u <= 0 || u >= 1) continue;
+                        double ang = i * Math.PI * 2 / 12 + 0.3;
+                        float d = 34 + 46 * Theme.EaseOut(u);
+                        var p = new PointF(medalCenter.X + (float)Math.Cos(ang) * d, medalCenter.Y + (float)Math.Sin(ang) * d * 0.8f);
+                        Theme.Sparkle(g, p, 6 * (1 - u) + 1.5f, Color.FromArgb((int)(255 * (1 - u)), i % 2 == 0 ? glow : Color.White));
+                    }
                 }
-                float pop = (t - 0.1f) / 0.55f;
-                float size = 84 * (pop <= 0 ? 0 : 0.25f + 0.75f * Theme.EaseBack(pop));
+                float pop = (t - 0.12f) / 0.45f;
+                float size = 96 * (pop <= 0 ? 0 : 0.3f + 0.7f * Theme.EaseBack(pop));
                 if (size > 1)
                 {
-                    var medal = Theme.Square(medalCenter, size);
-                    Theme.Medal(g, medal, art, 0);
-                    if (pop >= 1) Theme.StatusBadge(g, Theme.Square(medalCenter, 84), true);
+                    float flip = turn <= 0 || turn >= 1 ? 1 : Math.Abs((float)Math.Cos(Math.PI * turn));
+                    float bump = turn >= 1 ? 1 + 0.08f * (float)Math.Sin(Math.PI * Theme.Clamp01((t - TurnStart - TurnTime) / 0.3f)) : 1;
+                    var medalState = g.Save();
+                    g.TranslateTransform(medalCenter.X, medalCenter.Y); g.ScaleTransform(Math.Max(0.03f, flip) * bump, bump); g.TranslateTransform(-medalCenter.X, -medalCenter.Y);
+                    Theme.Medal(g, Theme.Square(medalCenter, size), art, turn < 0.5f ? 0.88f : 0);
+                    g.Restore(medalState);
                 }
 
-                float reveal = Theme.EaseOut((t - 0.22f) / 0.45f);
-                float tx = card.X + 122 + 14 * (1 - reveal), tw = card.Right - 18 - (card.X + 122);
-                Theme.Text(g, header, Theme.Font(12, Weight.Heavy), Theme.Alpha(Theme.Accent, reveal), new RectangleF(tx, card.Y + 18, tw, 18));
+                float reveal = Theme.EaseOut((t - 0.26f) / 0.45f);
+                float tx = card.X + Panel + 18 + 14 * (1 - reveal), tw = card.Right - 18 - (card.X + Panel + 18);
+                Theme.Text(g, header, Theme.Font(12, Weight.Heavy), Theme.Alpha(style.AccentDark, reveal), new RectangleF(tx, card.Y + 18, tw, 18));
                 Theme.Text(g, a.Title, Theme.Font(22, Weight.Heavy), Theme.Alpha(Theme.Ink, reveal), new RectangleF(tx, card.Y + 38, tw, 32));
-                string points = "+" + a.Points + (a.Points == 1 ? " punto" : " punti") + "  ·  " + Art.TierName(art.Tier);
-                var star = new RectangleF(tx, card.Y + 77, 16, 16);
+                // Rarity appears with the turn of the medal, then the points.
+                string rank = Art.TierName(art.Tier).ToUpperInvariant();
+                float rw = Theme.Measure(g, rank, Theme.Font(12.5f, Weight.Heavy)).Width + 24, ry = card.Y + 78;
+                float rankIn = Theme.EaseBack(Theme.Clamp01((t - TurnStart - TurnTime * 0.4f) / 0.4f));
+                if (rankIn > 0)
+                {
+                    var ribbon = new RectangleF(tx, ry, rw, 20);
+                    var rs = g.Save();
+                    var rc = Theme.Center(ribbon);
+                    g.TranslateTransform(rc.X, rc.Y); g.ScaleTransform(0.6f + 0.4f * rankIn, 0.6f + 0.4f * rankIn); g.TranslateTransform(-rc.X, -rc.Y);
+                    Theme.TierRibbon(g, ribbon, art.Tier, rank, Theme.Clamp01(rankIn));
+                    g.Restore(rs);
+                }
+                string points = "+" + a.Points + (a.Points == 1 ? " punto" : " punti");
+                var star = new RectangleF(tx + rw + 12, ry + 2, 16, 16);
                 Theme.Star(g, star, Theme.Alpha(Color.FromArgb(255, 226, 110), reveal), Theme.Alpha(Color.FromArgb(222, 150, 20), reveal));
-                Theme.Text(g, points, Theme.Font(14, Weight.Bold), Theme.Alpha(Theme.Muted, reveal), new RectangleF(tx + 22, card.Y + 77, tw - 22, 20));
+                Theme.Text(g, points, Theme.Font(14, Weight.Bold), Theme.Alpha(Theme.Muted, reveal), new RectangleF(tx + rw + 34, ry, tw - rw - 34, 20), StringAlignment.Near, StringAlignment.Center, false);
             }
             return bmp;
         }
     }
 
-    // Original three-note bell arpeggio, synthesised once in memory (no external sound file).
+    // Original bell arpeggios synthesised once in memory (no external sound file). Rarer
+    // medals climb further: bronze three notes, silver four, gold and platinum a full cadence.
     public static class Chime
     {
-        static SoundPlayer player;
-        public static void Play()
+        static readonly SoundPlayer[] players = new SoundPlayer[4];
+        public static void Play() { Play(Tier.Bronze); }
+        public static void Play(Tier tier)
         {
+            int index = Math.Max(0, Math.Min(players.Length - 1, (int)tier));
             try
             {
-                if (player == null) { player = new SoundPlayer(new MemoryStream(Build())); player.Load(); }
-                player.Play();
+                if (players[index] == null) { var player = new SoundPlayer(new MemoryStream(Build(tier))); player.Load(); players[index] = player; }
+                players[index].Play();
             }
             catch (Exception) { try { SystemSounds.Asterisk.Play(); } catch (Exception) { } }
         }
-        public static byte[] Build()
+        public static byte[] Build() { return Build(Tier.Bronze); }
+        public static byte[] Build(Tier tier)
         {
             const int rate = 44100;
-            var samples = new double[(int)(rate * 1.3)];
-            Note(samples, rate, 0.00, 1046.50, 0.50); // C6
-            Note(samples, rate, 0.085, 1567.98, 0.42); // G6
-            Note(samples, rate, 0.17, 2093.00, 0.38); // C7
-            Note(samples, rate, 0.17, 2637.02, 0.12); // E7 shimmer
+            const double C6 = 1046.50, E6 = 1318.51, G6 = 1567.98, C7 = 2093.00, E7 = 2637.02, G7 = 3135.96, C8 = 4186.01;
+            var samples = new double[(int)(rate * (1.3 + 0.15 * (int)tier))];
+            switch (tier)
+            {
+                case Tier.Bronze:
+                    Note(samples, rate, 0.00, C6, 0.50); Note(samples, rate, 0.085, G6, 0.42); Note(samples, rate, 0.17, C7, 0.38);
+                    Note(samples, rate, 0.17, E7, 0.12); break;
+                case Tier.Silver:
+                    Note(samples, rate, 0.00, C6, 0.46); Note(samples, rate, 0.075, E6, 0.4); Note(samples, rate, 0.15, G6, 0.4);
+                    Note(samples, rate, 0.225, C7, 0.4); Note(samples, rate, 0.225, E7, 0.14); break;
+                default:
+                    Note(samples, rate, 0.00, C6, 0.44); Note(samples, rate, 0.07, E6, 0.38); Note(samples, rate, 0.14, G6, 0.38);
+                    Note(samples, rate, 0.21, C7, 0.4); Note(samples, rate, 0.30, E7, 0.32); Note(samples, rate, 0.30, G7, 0.12);
+                    if (tier == Tier.Platinum) { Note(samples, rate, 0.39, G7, 0.26); Note(samples, rate, 0.39, C8, 0.1); }
+                    break;
+            }
             double peak = 0;
             foreach (var s in samples) peak = Math.Max(peak, Math.Abs(s));
             double gain = peak > 0 ? 0.42 / peak : 0;

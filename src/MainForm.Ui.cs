@@ -31,7 +31,7 @@ namespace WiiUAchievements
             public TextBox Box;
         }
 
-        const float TopH = 64, BottomH = 76, Pad = 20, BannerH = 196, TabsH = 40, TileH = 108, Gap = 14, SheetW = 440, DrawerH = 260;
+        const float TopH = 64, BottomH = 76, Pad = 20, BannerH = 196, TabsH = 40, TileH = 108, Gap = 14, SheetW = 440, DrawerH = 260, CelebrationTime = 2.2f;
         static readonly CultureInfo Italian = MakeCulture();
         readonly Dictionary<string, Widget> widgets = new Dictionary<string, Widget>();
         readonly List<Widget> visible = new List<Widget>();
@@ -50,6 +50,8 @@ namespace WiiUAchievements
         RectangleF bannerRect, gridRect, drawerRect, sheetRect, dialogRect, statusPill;
 
         float W { get { return ClientSize.Width / scale; } }
+        // Game look for banner-side content; buttons, bars and settings keep the system style.
+        GameStyle Style { get { return GameStyle.For(selectedGame.Id); } }
         float H { get { return ClientSize.Height / scale; } }
         int ActiveLayer { get { return dialogTarget > 0 ? 2 : sheetTarget > 0 ? 1 : 0; } }
 
@@ -324,7 +326,7 @@ namespace WiiUAchievements
             if (now - introStart < 1.4f) busy = true;
             if (celebrations.Count > 0)
             {
-                foreach (var id in celebrations.Where(c => now - c.Value > 1.8f).Select(c => c.Key).ToList()) celebrations.Remove(id);
+                foreach (var id in celebrations.Where(c => now - c.Value > CelebrationTime).Select(c => c.Key).ToList()) celebrations.Remove(id);
                 busy = true;
             }
             if (sheet != sheetBefore || sheet >= 1) { Arrange(); PlaceFields(); }
@@ -347,7 +349,7 @@ namespace WiiUAchievements
         {
             float start;
             if (!celebrations.TryGetValue(id, out start)) return -1;
-            float u = (t - start) / 1.8f;
+            float u = (t - start) / CelebrationTime;
             return u >= 1 ? -1 : Math.Max(0, u);
         }
         float FocusStrength(Widget w, float t)
@@ -407,8 +409,8 @@ namespace WiiUAchievements
                     b.SmoothingMode = SmoothingMode.AntiAlias;
                     using (var brush = new LinearGradientBrush(new Rectangle(0, -1, size.Width, size.Height + 2), Theme.BackTop, Theme.BackBottom, 90f))
                         b.FillRectangle(brush, 0, 0, size.Width, size.Height);
-                    Blob(b, new PointF(size.Width * 0.04f, size.Height * 0.42f), size.Width * 0.5f, Color.FromArgb(46, 120, 214, 250));
-                    Blob(b, new PointF(size.Width * 0.98f, size.Height * 0.95f), size.Width * 0.55f, Color.FromArgb(40, 80, 196, 240));
+                    Blob(b, new PointF(size.Width * 0.04f, size.Height * 0.42f), size.Width * 0.5f, Color.FromArgb(46, Style.Glow));
+                    Blob(b, new PointF(size.Width * 0.98f, size.Height * 0.95f), size.Width * 0.55f, Color.FromArgb(40, Style.Accent));
                     using (var pen = new Pen(Color.FromArgb(10, 0, 50, 80), 1.3f * scale))
                         for (float d = -size.Height; d < size.Width; d += 8 * scale) b.DrawLine(pen, d, size.Height, d + size.Height, 0);
                 }
@@ -592,12 +594,12 @@ namespace WiiUAchievements
             bool full = shownRatio >= 0.999f;
             float sweep = 360 * shownRatio;
             if (sweep > 0.5f)
-                using (var brush = new LinearGradientBrush(Theme.Inflate(arc, 8, 8), full ? Color.FromArgb(255, 220, 90) : Theme.Glow, full ? Color.FromArgb(226, 146, 16) : Theme.AccentDark, 45f))
+                using (var brush = new LinearGradientBrush(Theme.Inflate(arc, 8, 8), full ? Color.FromArgb(255, 220, 90) : Style.Glow, full ? Color.FromArgb(226, 146, 16) : Style.AccentDark, 45f))
                 using (var pen = new Pen(brush, 12) { StartCap = LineCap.Round, EndCap = LineCap.Round })
                     g.DrawArc(pen, arc, -90, Math.Max(1, sweep));
             Theme.Text(g, ((int)Math.Round(shownRatio * 100)).ToString(CultureInfo.InvariantCulture) + "%", Theme.Font(30, Weight.Heavy), Theme.Ink, new RectangleF(c.X - 60, c.Y - 34, 120, 42), StringAlignment.Center, StringAlignment.Center, false);
             Theme.Text(g, UnlockedCount + " di " + ActiveCount, Theme.Font(13, Weight.Bold), Theme.Muted, new RectangleF(c.X - 60, c.Y + 6, 120, 20), StringAlignment.Center, StringAlignment.Center, false);
-            Theme.Text(g, "ATTIVI", Theme.Font(10.5f, Weight.Heavy), Theme.Accent, new RectangleF(c.X - 60, c.Y + 24, 120, 16), StringAlignment.Center, StringAlignment.Center, false);
+            Theme.Text(g, "ATTIVI", Theme.Font(10.5f, Weight.Heavy), Style.Accent, new RectangleF(c.X - 60, c.Y + 24, 120, 16), StringAlignment.Center, StringAlignment.Center, false);
         }
 
         void DrawTabs(Graphics g, float t)
@@ -697,41 +699,61 @@ namespace WiiUAchievements
             bool done = unlock != null;
             float party = Celebration(a.Id, t);
             float cursor = Math.Max(w.Hover, FocusStrength(w, t));
+            var style = Style;
             var r = w.Bounds;
             r.Offset(0, -2.5f * w.Hover + 1.5f * w.Press);
             Theme.Shadow(g, r, 16, 7 + 5 * cursor, 54 + (int)(34 * cursor), 3 + 2 * cursor);
-            Theme.Fill(g, r, 16, done ? Color.White : Color.FromArgb(251, 252, 253), done ? Color.FromArgb(240, 245, 248) : Color.FromArgb(235, 239, 242));
-            Color tier = Theme.TierColor(art.Tier);
+            Theme.Fill(g, r, 16, done ? Color.White : Color.FromArgb(251, 252, 253), done ? Theme.Mix(Color.FromArgb(240, 245, 248), style.Soft, 0.4f) : Color.FromArgb(235, 239, 242));
+            Color tier = Theme.TierColor(art.Tier), glow = Theme.TierGlow(art.Tier);
             using (var path = Theme.Round(r, 16))
             {
                 var state = g.Save();
                 g.SetClip(path, CombineMode.Intersect);
                 if (done)
-                    using (var b = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, 50), Color.FromArgb(70, tier), Color.FromArgb(0, tier), 90f)) g.FillRectangle(b, r.X, r.Y, r.Width, 48);
+                {
+                    // Rarity wash with the game's motif, like a themed header on the Wii U Menu.
+                    using (var b = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, 56), Color.FromArgb(78, tier), Color.FromArgb(0, tier), 90f)) g.FillRectangle(b, r.X, r.Y, r.Width, 54);
+                    style.Pattern(g, new RectangleF(r.X + 96, r.Y, r.Width - 96, 30), 0, Color.FromArgb(40, 255, 255, 255));
+                }
                 if (party >= 0)
                 {
-                    float u = Theme.EaseInOut(Theme.Clamp01((party - 0.1f) / 0.6f)), sx = r.X - 90 + (r.Width + 180) * u;
+                    float u = Theme.EaseInOut(Theme.Clamp01((party - 0.2f) / 0.55f)), sx = r.X - 90 + (r.Width + 180) * u;
                     using (var band = new GraphicsPath())
                     {
                         band.AddPolygon(new[] { new PointF(sx, r.Y), new PointF(sx + 60, r.Y), new PointF(sx + 20, r.Bottom), new PointF(sx - 40, r.Bottom) });
-                        Theme.Fill(g, band, Color.FromArgb((int)(120 * (1 - party)), 255, 255, 255));
+                        Theme.Fill(g, band, Color.FromArgb((int)(130 * (1 - party)), 255, 255, 255));
                     }
                 }
                 g.Restore(state);
             }
-            Theme.Stroke(g, r, 16, Color.FromArgb(212, 220, 226), 1);
-            const float ms = 70;
-            var mc = new PointF(r.X + 16 + ms / 2, r.Y + r.Height / 2);
-            float pop = 1;
+            Theme.Stroke(g, r, 16, done ? Theme.Mix(tier, Color.White, 0.3f) : Color.FromArgb(212, 220, 226), done ? 1.5f : 1);
+            const float ms = 74;
+            var mc = new PointF(r.X + 14 + ms / 2, r.Y + 46);
+            float pop = 1 + 0.05f * cursor, flip = 1;
+            bool grey = !done;
             if (party >= 0)
             {
-                pop = 1 + 0.3f * (float)Math.Sin(Math.PI * Theme.Clamp01(party / 0.45f));
-                Theme.Rays(g, mc, 64, party * 140, Color.FromArgb((int)(170 * (1 - party)), 255, 214, 90));
+                // Coin turn from the grey medal to the coloured one, then a soft pop and a burst.
+                float turn = Theme.Clamp01(party / 0.3f);
+                flip = Math.Abs((float)Math.Cos(Math.PI * turn));
+                grey = turn < 0.5f;
+                pop = 1 + 0.2f * (float)Math.Sin(Math.PI * Theme.Clamp01((party - 0.3f) / 0.35f));
+                if (!grey)
+                {
+                    Theme.Rays(g, mc, 66, party * 160, Color.FromArgb((int)(180 * (1 - party)), glow));
+                    float ring = Theme.Clamp01((party - 0.15f) / 0.5f);
+                    if (ring < 1)
+                        using (var pen = new Pen(Color.FromArgb((int)(210 * (1 - ring)), glow), 0.5f + 3 * (1 - ring)))
+                            g.DrawEllipse(pen, Theme.Square(mc, ms * (0.95f + 0.75f * Theme.EaseOut(ring))));
+                }
             }
-            Theme.Medal(g, Theme.Square(mc, ms * pop), art, done ? 0 : 0.88f);
-            Theme.StatusBadge(g, Theme.Square(mc, ms * pop), done);
-            Theme.Text(g, Art.TierName(art.Tier), Theme.Font(10, Weight.Bold), Theme.Muted,
-                new RectangleF(r.X + 16, r.Y + 91, ms, 13), StringAlignment.Center, StringAlignment.Center, false);
+            var medal = Theme.Square(mc, ms * pop);
+            var turnState = g.Save();
+            if (flip < 0.999f) { g.TranslateTransform(mc.X, mc.Y); g.ScaleTransform(Math.Max(0.03f, flip), 1); g.TranslateTransform(-mc.X, -mc.Y); }
+            Theme.Medal(g, medal, art, grey ? 0.88f : 0);
+            g.Restore(turnState);
+            if (party < 0 || party > 0.3f) Theme.StatusBadge(g, Theme.Square(mc, ms), done);
+            Theme.TierRibbon(g, new RectangleF(mc.X - 31, r.Y + 87, 62, 15), art.Tier, Art.TierName(art.Tier).ToUpperInvariant(), done ? 1 : 0.8f);
             float tx = r.X + 102, tw = r.Right - 16 - tx;
             string pts = a.IsPlanned ? "?" : "+" + a.Points + (a.Experimental ? "*" : "");
             var pf = Theme.Font(13, Weight.Heavy);
@@ -745,14 +767,16 @@ namespace WiiUAchievements
             Theme.Cursor(g, r, 16, cursor);
             if (party >= 0)
             {
-                Theme.Stroke(g, Theme.Inflate(r, 1, 1), 17, Color.FromArgb((int)(230 * (1 - party)), 255, 196, 48), 2.5f);
-                for (int i = 0; i < 9; i++)
-                {
-                    double ang = i * Math.PI * 2 / 9 + 0.4;
-                    float d = 28 + 44 * Theme.EaseOut(party);
-                    var p = new PointF(mc.X + (float)Math.Cos(ang) * d, mc.Y + (float)Math.Sin(ang) * d * 0.75f);
-                    Theme.Sparkle(g, p, 5.5f * (1 - party) + 1, Color.FromArgb((int)(255 * (1 - party)), i % 2 == 0 ? Color.FromArgb(255, 210, 70) : Theme.Glow));
-                }
+                Theme.Stroke(g, Theme.Inflate(r, 1, 1), 17, Color.FromArgb((int)(230 * (1 - party)), glow), 2.5f);
+                float burst = Theme.Clamp01((party - 0.28f) / 0.72f);
+                if (burst > 0)
+                    for (int i = 0; i < 10; i++)
+                    {
+                        double ang = i * Math.PI * 2 / 10 + 0.4;
+                        float d = 30 + 46 * Theme.EaseOut(burst);
+                        var p = new PointF(mc.X + (float)Math.Cos(ang) * d, mc.Y + (float)Math.Sin(ang) * d * 0.75f);
+                        Theme.Sparkle(g, p, 5.5f * (1 - burst) + 1, Color.FromArgb((int)(255 * (1 - burst)), i % 2 == 0 ? glow : Color.White));
+                    }
             }
         }
         void DrawProgress(Graphics g, Achievement a, Unlock unlock, RectangleF r, Font font, bool centered)
@@ -806,7 +830,7 @@ namespace WiiUAchievements
             if (bar.Width < 8) { Theme.Text(g, label, font, Theme.Ink, r); return; }
             Theme.Fill(g, bar, 4, Color.FromArgb(214, 223, 230), Color.FromArgb(228, 234, 239));
             float ratio = Theme.Clamp01(value / (float)a.Threshold);
-            if (ratio > 0) Theme.Fill(g, new RectangleF(bar.X, bar.Y, Math.Max(8, bar.Width * ratio), bar.Height), 4, Theme.Glow, Theme.Accent);
+            if (ratio > 0) Theme.Fill(g, new RectangleF(bar.X, bar.Y, Math.Max(8, bar.Width * ratio), bar.Height), 4, Style.Glow, Style.Accent);
             Theme.Text(g, label, font, Theme.Ink, new RectangleF(bar.Right + 10, r.Y, lw, r.Height), StringAlignment.Near, StringAlignment.Center, false);
         }
 
@@ -961,7 +985,7 @@ namespace WiiUAchievements
             Theme.Text(g, selectedGame.Title + " · " + selectedGame.Profiles[0].Label + " · Cemu " + selectedGame.Profiles[0].CemuVersion, Theme.Font(13.5f, Weight.Bold), Theme.Ink, new RectangleF(info.X + 14, info.Y + 10, info.Width - 28, 20));
             Theme.Text(g, "Title ID " + selectedGame.Profiles[0].TitleId, f, Theme.Muted, new RectangleF(info.X + 14, info.Y + 31, info.Width - 28, 18));
             Theme.Text(g, "RPX " + selectedGame.Profiles[0].RpxHash + " · sola lettura della memoria", f, Theme.Muted, new RectangleF(info.X + 14, info.Y + 50, info.Width - 28, 18));
-            Theme.Text(g, "Grafica e suoni originali generati dal codice, ispirati allo stile Wii U. Font Nunito © The Nunito Project Authors, SIL Open Font License 1.1.",
+            Theme.Text(g, "Icone fornite dal proprietario del progetto; grafica e suoni in stile Wii U generati dal codice. Font Nunito © The Nunito Project Authors, SIL OFL 1.1.",
                 Theme.Font(11.5f, Weight.Regular), Theme.Faint, new RectangleF(sx, Math.Max(640, H - 54), cw, 40), StringAlignment.Near, StringAlignment.Near, true);
         }
         static void Section(Graphics g, string text, float x, float y)
@@ -1010,26 +1034,32 @@ namespace WiiUAchievements
             g.TranslateTransform(c.X, c.Y); g.ScaleTransform(s, s); g.TranslateTransform(-c.X, -c.Y);
             Theme.Shadow(g, r, 26, 24, 130, 10);
             Theme.Fill(g, r, 26, Color.White, Color.FromArgb(236, 242, 246));
-            Color tier = Theme.TierColor(art.Tier);
+            Color tier = Theme.TierColor(art.Tier), glow = Theme.TierGlow(art.Tier);
             using (var path = Theme.Round(r, 26))
             {
                 var inner = g.Save();
                 g.SetClip(path, CombineMode.Intersect);
                 using (var b = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, 182), Color.FromArgb(done ? 110 : 50, done ? tier : Theme.Faint), Color.FromArgb(0, tier), 90f))
                     g.FillRectangle(b, r.X, r.Y, r.Width, 180);
+                if (done) Style.Pattern(g, new RectangleF(r.X, r.Y + 4, r.Width, 60), t * 0.6f, Color.FromArgb(46, 255, 255, 255));
                 g.Restore(inner);
             }
-            Theme.Stroke(g, r, 26, Color.FromArgb(214, 222, 228), 1);
-            var mc = new PointF(c.X, r.Y + 98);
-            if (done) Theme.Rays(g, mc, 120, t * 14, Color.FromArgb(140, 255, 214, 90));
-            Theme.Medal(g, Theme.Square(mc, 128), art, done ? 0 : 0.88f);
-            Theme.StatusBadge(g, Theme.Square(mc, 128), done);
+            Theme.Stroke(g, r, 26, done ? Theme.Mix(tier, Color.White, 0.35f) : Color.FromArgb(214, 222, 228), done ? 1.5f : 1);
+            // The medal arrives just after the card and floats gently once earned.
+            float enter = Theme.EaseBack(Theme.Clamp01((dialog - 0.2f) / 0.8f));
+            var mc = new PointF(c.X, r.Y + 100 + (done ? (float)Math.Sin(t * 1.7f) * 2.5f : 0));
+            float size = 140 * (0.55f + 0.45f * enter);
+            if (done) Theme.Rays(g, mc, 128, t * 14, Color.FromArgb((int)(150 * enter), glow));
+            Theme.Medal(g, Theme.Square(mc, size), art, done ? 0 : 0.88f);
+            Theme.StatusBadge(g, Theme.Square(mc, size), done);
             Theme.Text(g, a.Title, Theme.Font(26, Weight.Heavy), Theme.Ink, new RectangleF(r.X + 24, r.Y + 176, r.Width - 48, 38), StringAlignment.Center, StringAlignment.Center, false);
-            string pill = a.IsPlanned ? Art.TierName(art.Tier) + " · Non attivo · Punti proposti: " + a.Points :
-                "+" + a.Points + (a.Points == 1 ? " punto" : " punti") + "  ·  " + Art.TierName(art.Tier) + (a.Experimental ? " · Sperimentale" : "");
+            string rank = Art.TierName(art.Tier).ToUpperInvariant();
+            string pill = a.IsPlanned ? "Non attivo · Punti proposti: " + a.Points :
+                "+" + a.Points + (a.Points == 1 ? " punto" : " punti") + (a.Experimental ? " · Sperimentale" : "");
             var pf = Theme.Font(13.5f, Weight.Heavy);
-            float pw = Measure(pill, pf).Width + 26;
-            var pr = new RectangleF(c.X - pw / 2, r.Y + 220, pw, 28);
+            float rw = Measure(rank, Theme.Font(15, Weight.Heavy)).Width + 30, pw = Measure(pill, pf).Width + 26, row = c.X - (rw + 8 + pw) / 2;
+            Theme.TierRibbon(g, new RectangleF(row, r.Y + 221, rw, 26), art.Tier, rank, 1);
+            var pr = new RectangleF(row + rw + 8, r.Y + 220, pw, 28);
             Theme.Fill(g, pr, 14, done ? Theme.Light(tier, 0.12f) : Color.FromArgb(200, 208, 214), done ? Theme.Dark(tier, 0.2f) : Color.FromArgb(182, 191, 198));
             Theme.Text(g, pill, pf, Color.White, pr, StringAlignment.Center, StringAlignment.Center, false);
             Theme.Text(g, a.Description, Theme.Font(15.5f, Weight.Regular), Theme.Muted, new RectangleF(r.X + 48, r.Y + 264, r.Width - 96, 48), StringAlignment.Center, StringAlignment.Near, true);
@@ -1238,9 +1268,13 @@ namespace WiiUAchievements
         {
             try { SaveSettings(); } catch (Exception ex) { Log("Impostazioni non salvate: " + ex.Message); }
         }
+        int testTier;
         void TestToast()
         {
-            var sample = rules.OrderByDescending(a => a.Points).First();
+            // Each press previews the next rarity, preferring an objective with the owner's artwork.
+            var tier = (AchievementRarity)(testTier++ % 3);
+            var sample = rules.Where(a => a.Rarity == tier).OrderByDescending(a => arts[a.Id].HasIcon).ThenByDescending(a => a.Points).FirstOrDefault()
+                ?? rules.OrderByDescending(a => a.Points).First();
             toasts.Enqueue(new PendingToast { Achievement = sample, Header = "ANTEPRIMA · NOTIFICA DI PROVA" });
             PumpToasts();
         }

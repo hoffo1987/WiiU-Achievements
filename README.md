@@ -1,4 +1,19 @@
-# Wii U Achievements — alpha 0.3
+# Wii U Achievements — alpha 0.4
+
+**Icone, rarità e stile del gioco (30 ottobre 2026):** la build principale è
+`WiiUAchievements.exe` nella cartella del progetto; le vecchie build sono in
+`build-check/archive/` e i pacchetti in `release/`. Le 28 icone fornite sostituiscono
+le medaglie con lo stesso titolo; gli altri obiettivi hanno icone disegnate nello
+stesso stile e nella stessa cornice. Bronzo, argento e oro decidono metallo della
+cornice, nastrino, bagliore e suono; ogni gioco ha il proprio stile (per The Wind
+Waker: mare, schiuma e vela). Lo sblocco fa girare la medaglia dal grigio al colore.
+
+| | |
+| --- | --- |
+| ![Finestra principale](docs/screenshots/main.png) | ![Notifica oro](docs/screenshots/toast.png) |
+| ![Dettaglio](docs/screenshots/detail.png) | ![Sequenza della notifica](docs/screenshots/toast-timeline.png) |
+
+![Tutte le medaglie](docs/screenshots/medals.png)
 
 **Progressi corretti (30 ottobre 2026):** gli aggiornamenti ora condividono un
 archivio stabile in `%LOCALAPPDATA%\WiiUAchievements`, recuperano gli sblocchi
@@ -7,8 +22,8 @@ Gli obiettivi già soddisfatti nel salvataggio vengono riconosciuti dopo la
 stabilizzazione della partita. Vedi [recupero e limiti](docs/PROGRESS-RECOVERY.md).
 
 
-**Caricamenti automatici (30 ottobre 2026):** la build corrente è in
-`build-check/firebase-final/`. Puoi collegarti anche dalla selezione file e
+**Caricamenti automatici (30 ottobre 2026):** la build di allora era in
+`build-check/archive/firebase-final/`. Puoi collegarti anche dalla selezione file e
 lasciare l'app attiva durante i caricamenti; attesa, ripresa e ricollegamento
 sono automatici per Cemu 2.6 / EUR v0 / cdc68acd. Vedi
 [prove e limiti](docs/AUTOMATIC-LOADS.md). Il progetto Firebase esistente è già
@@ -82,7 +97,11 @@ in [docs/GAMES.md](docs/GAMES.md).
 - schede degli obiettivi con barra di avanzamento e cursore di selezione azzurro;
 - notifica di sblocco animata, con un jingle originale.
 
-Tutta la grafica è disegnata dal codice, senza file Nintendo. I dettagli tecnici sono in [docs/UI.md](docs/UI.md).
+Le icone e le cornici delle medaglie di The Wind Waker HD sono quelle fornite dal
+proprietario del progetto (28 immagini); gli altri obiettivi usano icone disegnate dal
+codice nella stessa cornice. Ogni gioco ha un proprio stile (colori, cornici, motivo),
+mentre la rarità decide metallo, nastrino, bagliore e suono dello sblocco.
+I dettagli tecnici sono in [docs/UI.md](docs/UI.md).
 
 ## Per altre AI o sviluppatori
 
@@ -218,7 +237,7 @@ Il lettore di produzione apre il processo con `PROCESS_QUERY_INFORMATION | PROCE
 - [Nunito](https://github.com/googlefonts/nunito): font usato dall'interfaccia, © The Nunito Project Authors, SIL Open Font License 1.1 (`assets/fonts/OFL.txt`).
 - [Mappatura pubblica dei dati di Wind Waker HD](https://github.com/jamesst20/ZeldaWindWakerTrainer-for-CEMU/blob/master/ZeldaWindWakerTrainer/GameOffsets.cs): riferimento per gli indirizzi iniziali di cuori e rupie, verificati poi sulla partita reale.
 
-Il programma è un'implementazione originale. Non incorpora EmuHook, altri trainer, codice di gioco o file di Nintendo. Lo stile grafico richiama i menu Wii U, ma icone, medaglie, banner e suono sono creati dal codice.
+Il programma è un'implementazione originale. Non incorpora EmuHook, altri trainer, codice di gioco o file di Nintendo. Lo stile grafico richiama i menu Wii U; interfaccia, banner, icone vettoriali e suoni sono creati dal codice, mentre le 28 icone e le cornici per rarità in `assets/games/` sono state fornite dal proprietario del progetto.
 
 Per trasferire i tuoi progressi, chiudi l'app e copia separatamente
 `%LOCALAPPDATA%\WiiUAchievements\progress/` nella stessa posizione sul nuovo PC. Mantieni lo stesso nome del profilo locale.

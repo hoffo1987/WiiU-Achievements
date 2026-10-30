@@ -115,6 +115,68 @@ class UiTests
         }
         Set(form, "scroll", 0f); Set(form, "scrollTarget", 0f);
     }
+    // Average saturation (max-min channel spread) of opaque pixels in the central square.
+    static double Saturation(Bitmap bitmap)
+    {
+        long sum = 0, count = 0;
+        int lo = bitmap.Width / 3, hi = bitmap.Width * 2 / 3;
+        for (int y = lo; y < hi; y++)
+            for (int x = lo; x < hi; x++)
+            {
+                var c = bitmap.GetPixel(x, y);
+                if (c.A < 200) continue;
+                sum += Math.Max(c.R, Math.Max(c.G, c.B)) - Math.Min(c.R, Math.Min(c.G, c.B)); count++;
+            }
+        return count == 0 ? 0 : sum / (double)count;
+    }
+    static void ArtChecks(MainForm form, string output)
+    {
+        var rules = (List<Achievement>)Get(form, "rules");
+        string prefix = "WiiUAchievements.Games." + GameCatalog.WindWakerId + ".";
+        var resources = typeof(MainForm).Assembly.GetManifestResourceNames().Where(n => n.StartsWith(prefix)).ToList();
+        var icons = resources.Where(n => n.StartsWith(prefix + "icons.")).Select(n => n.Substring(prefix.Length + 6, n.Length - prefix.Length - 10)).ToList();
+        Check(icons.Count == 28 && icons.All(id => rules.Any(a => a.Id == id)), "The 28 owner icons are embedded under existing achievement IDs");
+        Check(new[] { "frame-bronze.png", "frame-silver.png", "frame-gold.png", "frame-platinum.png", "sky.png" }.All(n => resources.Contains(prefix + n)),
+            "Every rarity frame and the shared sky are embedded");
+        var arts = rules.ToDictionary(a => a.Id, a => Art.For(a, rules, GameCatalog.WindWakerId));
+        Check(rules.All(a => arts[a.Id].HasIcon || a.Field == "rupees" || a.Field == "max_health" || Glyphs.HasExplicit(GameCatalog.WindWakerId, a.Id)),
+            "Every Wind Waker objective has its own icon or an explicit glyph");
+        Check(icons.All(id => arts[id].HasIcon) && arts.Values.Count(a => a.HasIcon) == 28, "Owner icons replace exactly the matching objectives");
+        Check(rules.All(a => arts[a.Id].Tier == (Tier)a.Rarity), "Medal frame rarity follows the curated rarity");
+        foreach (var id in new[] { "wallet-10", "story-zelda", "story-molgera" })
+            using (var color = Medals.Render(arts[id], 96, false))
+            using (var grey = Medals.Render(arts[id], 96, true))
+                Check(Saturation(color) > 40 && Saturation(grey) < Saturation(color) * 0.4, "Locked medal is a muted version of the coloured one: " + id);
+        using (var crown = Medals.Render(arts["story-zelda"], 96, false))
+        using (var bomb = Medals.Render(arts["gear-bombs"], 96, false))
+        {
+            long diff = 0;
+            for (int y = 32; y < 64; y++)
+                for (int x = 32; x < 64; x++)
+                {
+                    Color p = crown.GetPixel(x, y), q = bomb.GetPixel(x, y);
+                    diff += Math.Abs(p.R - q.R) + Math.Abs(p.G - q.G) + Math.Abs(p.B - q.B);
+                }
+            Check(diff / 1024 > 30, "Different objectives draw different items inside the frame");
+        }
+        int before = Medals.Builds;
+        Medals.Render(arts["story-zelda"], 96, false).Dispose();
+        var g1 = Medals.Get(arts["story-zelda"], 112, false); var g2 = Medals.Get(arts["story-zelda"], 112, false);
+        Check(ReferenceEquals(g1, g2) && Medals.Builds == before + 1, "Medal bitmaps are cached per size and state");
+        foreach (var a in rules) foreach (int size in new[] { 32, 48 }) Medals.Get(arts[a.Id], size, true);
+        Check(Medals.Cached <= 160, "Medal cache stays bounded");
+        var gold = rules.Single(a => a.Id == "hearts-20");
+        using (var early = ToastForm.Render(gold, arts[gold.Id], "OBIETTIVO SBLOCCATO", ToastForm.TurnStart - 0.05f, 1))
+        using (var late = ToastForm.Render(gold, arts[gold.Id], "OBIETTIVO SBLOCCATO", 1.6f, 1))
+        {
+            Func<Bitmap, double> medal = b => { using (var crop = b.Clone(new Rectangle(34 + 18, 34 + 14, 96, 96), b.PixelFormat)) return Saturation(crop); };
+            Check(medal(early) < medal(late) * 0.5, "Popup medal arrives grey and turns to colour");
+            late.Save(Path.Combine(output, "toast-gold.png"));
+        }
+        var lengths = new[] { Tier.Bronze, Tier.Silver, Tier.Gold, Tier.Platinum }.Select(t => Chime.Build(t)).ToList();
+        Check(lengths.All(b => b.Length > 44 && b[0] == 'R' && b[8] == 'W') && lengths.Zip(lengths.Skip(1), (x, y) => y.Length > x.Length).All(x => x),
+            "Each rarity has its own synthesised chime, longer for rarer medals");
+    }
     static void AutomaticWaitingChecks(MainForm form, string output)
     {
         var progress = new ProgressStore(Path.Combine(output, "automatic-wait"), "isolated", "synthetic");
@@ -256,6 +318,7 @@ class UiTests
                 Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Chapter == "02 · Pirati"), "F advances to the next chronological group");
                 Set(form, "chapterFilter", 0);
                 ScrollChecks(form, output);
+                ArtChecks(form, output);
                 Click(form, "games");
                 Check((bool)Get(form, "libraryOpen"), "Mouse opens the Games section");
                 Check(!(bool)Get(Widget(form, "game:future-games"), "Enabled"), "Future games show as unavailable and cannot be activated");

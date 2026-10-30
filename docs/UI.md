@@ -1,4 +1,16 @@
-# User interface (alpha 0.3)
+# User interface (alpha 0.4 — game styles)
+
+**2026-10-30 — owner icons, rarity frames and game styles.** The 28 icons supplied
+by the project owner replace the medals of the objectives whose titles they carry.
+Every other objective uses an original cel-shaded glyph on the same sky, inside the
+same frame, so all 110 medals share one look. The frame metal follows the curated
+rarity (bronze, silver, gold; platinum reserved). Each game has a `GameStyle`:
+Wind Waker uses sea blues, sail cream and foam-curl motifs; the Wii U system chrome
+(bars, buttons, settings) stays common. Unlock animations were reworked: medals turn
+like a coin from grey to colour, with rarity-coloured rays, burst ring and sparkles,
+and each rarity has its own chime. IDs, points, revision and progress are unchanged.
+
+![All medals](screenshots/medals.png)
 
 The expanded catalog adds a fourth status tab, **Da verificare**, and a category
 cycle button (**C**). The six categories are Storia, Equipaggiamento,
@@ -26,16 +38,25 @@ cel-shaded sea banner for the game.
 
 ## Asset policy
 
-- **No Nintendo files.** Every shape (gems, hearts, medals, trophy, clouds,
-  waves, island, avatar, icons) is drawn with GDI+ in code. Nothing was ripped
-  from the console, a game or a website. Do not add Nintendo logos, Miis, menu
-  textures, sounds or the proprietary system font.
+- **No ripped Nintendo files.** Interface shapes (glyphs, trophy, clouds, waves,
+  island, avatar, buttons) are drawn with GDI+ in code. Nothing was ripped from the
+  console, a game or a website. Do not add Nintendo logos, Miis, menu textures,
+  sounds or the proprietary system font.
+- **Owner artwork (exception, 2026-10-30).** `assets/games/wind-waker-hd/` holds
+  the 28 medal icons the project owner supplied (named after achievement titles,
+  stored by achievement ID at 256 px) plus `frame-<rarity>.png` and `sky.png`,
+  which `tools/prepare-game-art.py` extracts from those icons: per-rarity median,
+  centre removed, platinum derived from silver. `build.ps1` embeds every PNG as
+  `WiiUAchievements.Games.<game>.<path>`; the EXE needs no files beside it. Add
+  more such art only at the owner's explicit request. The icons depict the game's
+  world: keep that in mind before any public redistribution.
 - **Font:** Nunito Regular/Bold/ExtraBold, © The Nunito Project Authors, SIL Open
   Font License 1.1 (`assets/fonts/OFL.txt`). The three static TTFs come from the
   Google Fonts API. `build.ps1` embeds them as manifest resources named
   `WiiUAchievements.Fonts.<file>`. Keep `OFL.txt` next to the fonts.
-- **Sound:** `Chime.Build()` creates a three-note bell arpeggio (C6–G6–C7) as an
-  in-memory 16-bit WAV. There is no sound file.
+- **Sound:** `Chime.Build(tier)` creates a bell arpeggio as an in-memory 16-bit WAV:
+  bronze C6–G6–C7, silver C6–E6–G6–C7, gold C6–E6–G6–C7–E7, platinum adds G7–C8.
+  There is no sound file.
 
 ## Source map
 
@@ -45,7 +66,10 @@ cel-shaded sea banner for the game.
 | `src/MainForm.Ui.cs` | Layout, painting, animation timer, mouse/keyboard input and accessibility of the main window. |
 | `src/MainForm.Tiles.cs` | Bounded lazy bitmap cache for static achievement cards; live footers and animated cards remain dynamic. |
 | `src/MainForm.Library.cs` | Game catalog using the same rounded cards, sea artwork and input widgets. |
-| `src/Theme.cs` | Palette, fonts, easing, text helpers, rounded shapes, shadows, cursor and every vector icon/medal. `Art` maps a rule to its medal. |
+| `src/Theme.cs` | Palette, fonts, easing, text helpers, rounded shapes, shadows, cursor, rarity metals (`TierColors`, `TierGlow`, `TierRibbon`) and the vector fallback medal. |
+| `src/GameStyle.cs` | Per-game palette, embedded artwork loader (icons, frames, sky) and the game's repeating motif. |
+| `src/Medals.cs` | `Art` (rule → rarity, icon or glyph) and `Medals`: bounded cache of rasterised medals per size and locked state. |
+| `src/Glyphs.cs` | Original cel-shaded item glyphs and the explicit Wind Waker ID → glyph table, plus the number plate for series. |
 | `src/Banner.cs` | `OceanBanner`: cached sky layer plus animated clouds, swell rows, foam and sparkles. |
 | `src/Notification.cs` | `ToastForm` unlock popup, `Layered` (UpdateLayeredWindow) and `Chime`. |
 
@@ -79,17 +103,26 @@ cel-shaded sea banner for the game.
 
 ## Achievement visuals
 
-`Art.For(rule, allRules)` derives the medal without new XML fields:
+`Art.For(rule, allRules, gameId)` derives the medal without new XML fields:
 
-- `rupees` → a faceted gem whose colour follows the rule's rank among rupee
-  thresholds: green, blue, red, purple, gold, then silver.
-- `max_health` → a heart container with the heart count as a badge.
+- **Owner icon:** if `assets/games/<game>/icons/<id>.png` exists it is the whole
+  medal (its frame already has the rarity metal). 28 Wind Waker objectives: all
+  16 rupee/heart thresholds plus 12 story/equipment items.
+- **Glyph medal:** otherwise the game's sky, an explicit glyph from `Glyphs`
+  (sail, pearls, master sword, notes, charts, chests…, with a cream number plate
+  for series such as 10/25/49) and `frame-<rarity>.png` on top, so the boat and
+  waves overlap the item exactly as in the supplied icons. Every Wind Waker ID has
+  an explicit glyph; unknown IDs of future games fall back to a category emblem.
+- Games without artwork use the original vector medallion (`Theme.VectorMedal`).
 - Medal tier comes from explicit editorial rarity, independently of points.
   See `RARITIES.md`: 53 bronze, 47 silver, 10 gold; platinum is reserved for the
-  future set-completion trophy. The name appears below the medal and in the
-  detail pill, including when a rule is experimental or not active.
-- Locked medals are desaturated and carry a lock badge. Unlocked medals get a
-  green check and a tier-tinted card.
+  future set-completion trophy. Frame, ribbon under the medal, card edge and wash,
+  points pill, rays, sparkles, popup glow and chime all use the same rarity metal.
+- Locked medals are the same picture through a colour matrix (86 % desaturated,
+  lifted) with a lock badge. Unlocked medals get a green check, a rarity-tinted
+  card with the game's foam motif and a rarity-coloured edge.
+
+![Locked and unlocked medals](screenshots/medals-locked.png)
 
 Tile footer states:
 
@@ -104,8 +137,16 @@ Tile footer states:
 - **Paused:** "Registrazione in pausa" for locked objectives; saved objectives
   keep their date, points and medal.
 
-An unlock plays a 1.8 s celebration on its tile: medal pop, rays, sparkles, a
-shine sweep and a gold edge. The ring and counters also animate.
+An unlock plays a 2.2 s celebration on its tile: the grey medal turns like a
+coin and comes back in colour, pops, emits a rarity-coloured burst ring, rays and
+sparkles, while a shine sweeps the card and the edge glows. Hovered cards lift and
+their medal grows slightly. The detail dialog's medal enters with a small bounce
+and, once earned, floats gently over slow rarity rays. The ring, bars and backdrop
+use the game palette.
+
+| | |
+| --- | --- |
+| ![Unlock celebration](screenshots/unlock.png) | ![Detail](screenshots/detail.png) |
 
 ## Game catalog and recording pause
 
@@ -127,20 +168,28 @@ navigation does not alter recording state. **B / Esc** closes the top surface
 
 ![Unlock popup](screenshots/toast.png)
 
+![Popup timeline](screenshots/toast-timeline.png)
+
 - A top-most `WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE |
   WS_EX_TOOLWINDOW` window updated through `UpdateLayeredWindow`. This gives
   per-pixel alpha (soft shadow, glow, rounded corners). It never takes focus,
   and clicks pass through it to the game.
 - It appears top-centre on the monitor that shows Cemu's main window. Demo and
   preview popups appear on the app's monitor.
-- Timeline (5.4 s): slide down with overshoot, medal pop, rotating rays,
-  sparkles, text reveal, shine sweep, a countdown bar, then slide up and fade.
+- Layout: the left panel carries the game style (Wind Waker: sea gradient,
+  drifting foam curls, rising bubbles, a light behind the medal); the right side
+  shows header, title, rarity ribbon and points. Border and halo use the rarity
+  metal, brighter for gold and platinum.
+- Timeline (5.6 s): slide down with overshoot, grey medal pop, text reveal; at
+  0.62 s the medal turns like a coin into colour (`ToastForm.TurnStart`/`TurnTime`)
+  with burst ring, rotating rays, sparkles and the rarity ribbon popping in; then a
+  shine sweep, the countdown bar and slide up/fade. The chime matches the rarity.
 - If `UpdateLayeredWindow` fails, `Layered.Disabled` is set. The same unlock is
   then shown again in a plain rounded popup with opacity fades. Non-Windows
   runtimes always use that fallback.
 - "Prova notifica" in the settings panel queues a preview popup labelled
-  "ANTEPRIMA". Use it to check that popups appear over the game in the chosen
-  Cemu fullscreen mode.
+  "ANTEPRIMA", cycling bronze → silver → gold on each press. Use it to check that
+  popups appear over the game in the chosen Cemu fullscreen mode.
 
 ## Input and accessibility
 
@@ -174,11 +223,15 @@ achievement set revision (`wwhd-alpha-1`) are unchanged.
 - `--preview=<png>`: renders the main window after 1.2 s, then exits. It uses
   the same `Render()` path, not a screen grab.
 - `--preview-toast=<png>`: renders one popup frame with transparency, then exits.
+- `--preview-medals=<png>`: renders every medal of the default game, unlocked and
+  locked, with titles, then exits.
+- `tools/prepare-game-art.py <folder> <game>`: regenerates icons, frames and sky
+  from the owner's full-size PNGs (optional Python + Pillow/NumPy/SciPy).
 
-Screenshots in `docs/screenshots/` were rendered under Mono/libgdiplus on Linux
-(Xvfb) with Nunito installed. Windows text antialiasing differs slightly.
+Screenshots in `docs/screenshots/` were rendered on Windows 11 by the app's own
+`Render()`/`ToastForm.Render()` paths on 2026-10-30 (synthetic progress, no Cemu).
 
 | | |
 | --- | --- |
-| ![Unlock celebration](screenshots/unlock.png) | ![Detail dialog](screenshots/detail.png) |
-| ![Settings](screenshots/settings.png) | |
+| ![Settings](screenshots/settings.png) | ![Detail of a locked objective](screenshots/detail-locked.png) |
+| ![Silver popup](screenshots/toast-silver.png) | ![Bronze popup](screenshots/toast-bronze.png) |

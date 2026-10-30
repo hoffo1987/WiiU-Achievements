@@ -1,5 +1,15 @@
 # Start here — handoff for another AI or developer
 
+**Game styles and owner icons (2026-10-30):** the root `WiiUAchievements.exe` is
+the current main build (progress recovery + this change); older builds were moved
+to `build-check/archive/` (still scanned for legacy progress) and packages to
+`release/`. The owner's 28 icons replace the matching medals; every other
+objective draws an original glyph inside the same rarity frame. Each game has a
+`GameStyle` (Wind Waker: sea palette, foam motif, popup panel); rarity drives
+frame, ribbon, glow and chime. Unlocks animate as a grey-to-colour coin turn.
+See `docs/UI.md` and the latest `docs/VALIDATION.md` record. IDs/points/revision
+and progress are unchanged.
+
 **Progress recovery (2026-10-30):** supersedes earlier no-retroactive-award policy
 for real gameplay. Production now uses a shared per-user LocalApplicationData
 archive instead of EXE-local `data/`, imports exact-identity legacy awards without
@@ -197,7 +207,7 @@ Source entry points:
 
 ## Recommended next task
 
-Use `build-check/firebase-final/` for the current local build. The stage/load
+Use the root `WiiUAchievements.exe` (rebuilt by `build.ps1`) as the current local build. The stage/load
 reader and automatic reconnect are implemented for the exact profile; see
 `docs/AUTOMATIC-LOADS.md` for real evidence and limits. Next verify death/continue,
 new game/hero mode, different save slots and late-game transitions. Do not

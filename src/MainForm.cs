@@ -63,7 +63,7 @@ namespace WiiUAchievements
             else if (cloud.IsSignedIn) cloudMessage = "Account connesso. Sincronizzazione automatica attiva.";
             cloudTimer.Interval = 30000; cloudTimer.Tick += delegate { SyncCloud(); }; cloudTimer.Start();
             rules = selectedGame.LoadRules(root);
-            foreach (var a in rules) arts[a.Id] = Art.For(a, rules);
+            foreach (var a in rules) arts[a.Id] = Art.For(a, rules, selectedGame.Id);
             Text = "Wii U Achievements — " + selectedGame.Title;
             StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.None;
@@ -265,10 +265,11 @@ namespace WiiUAchievements
         {
             // Load successfully before changing selection. Existing progress on disk is untouched.
             var loaded = game.LoadRules(root);
-            var loadedArt = loaded.ToDictionary(rule => rule.Id, rule => Art.For(rule, loaded));
+            var loadedArt = loaded.ToDictionary(rule => rule.Id, rule => Art.For(rule, loaded, game.Id));
             ClearTileImages();
             selectedGame = game; rules = loaded; progress = null; engine = null; current = null;
             arts.Clear(); foreach (var pair in loadedArt) arts.Add(pair.Key, pair.Value);
+            if (backdrop != null) { backdrop.Dispose(); backdrop = null; } // The backdrop follows the game palette.
             celebrations.Clear(); filter = categoryFilter = chapterFilter = 0; scroll = scrollTarget = 0; tabX = -1;
             Text = "Wii U Achievements — " + game.Title;
         }
@@ -358,7 +359,7 @@ namespace WiiUAchievements
             activeToast = toast;
             try { toast.Show(); }
             catch (Exception ex) { activeToast = null; toast.Dispose(); Log("Notifica non mostrata: " + ex.Message); return; }
-            if (soundOn && !next.Retry) Chime.Play();
+            if (soundOn && !next.Retry) Chime.Play(arts[next.Achievement.Id].Tier);
         }
         Screen ToastScreen()
         {

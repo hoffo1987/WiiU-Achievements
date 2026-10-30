@@ -7,10 +7,17 @@ New-Item -ItemType Directory -Path $output -Force | Out-Null
 $sources = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'src') -Filter '*.cs' | ForEach-Object FullName
 # Nunito (SIL OFL 1.1) is embedded so the EXE needs no installed fonts.
 $fonts = Join-Path $PSScriptRoot 'assets\fonts'
-$resources = @('Nunito-Regular.ttf', 'Nunito-Bold.ttf', 'Nunito-ExtraBold.ttf') | ForEach-Object {
+$resources = @(@('Nunito-Regular.ttf', 'Nunito-Bold.ttf', 'Nunito-ExtraBold.ttf') | ForEach-Object {
     $font = Join-Path $fonts $_
     if (-not (Test-Path -LiteralPath $font)) { throw ('Font mancante: ' + $font) }
     '/resource:' + $font + ',WiiUAchievements.Fonts.' + $_
+})
+# Per-game artwork (owner icons, rarity frames, sky) becomes WiiUAchievements.Games.<game>.<path>.
+$games = Join-Path $PSScriptRoot 'assets\games'
+if (Test-Path -LiteralPath $games) {
+    $resources += @(Get-ChildItem -LiteralPath $games -Filter '*.png' -File -Recurse | Sort-Object FullName | ForEach-Object {
+        '/resource:' + $_.FullName + ',WiiUAchievements.Games.' + $_.FullName.Substring($games.Length + 1).Replace('\', '.')
+    })
 }
 & $compiler /nologo /langversion:5 /target:winexe /platform:x64 /optimize+ /utf8output /r:System.Xml.Linq.dll /r:System.Web.Extensions.dll /r:System.Security.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:Accessibility.dll $resources "/out:$output\WiiUAchievements.exe" $sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilazione applicazione fallita.' }

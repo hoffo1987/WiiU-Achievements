@@ -12,29 +12,6 @@ using System.Runtime.InteropServices;
 namespace WiiUAchievements
 {
     public enum Weight { Regular, Bold, Heavy }
-    public enum ArtKind { Gem, Heart }
-    public enum Tier { Bronze, Silver, Gold, Platinum }
-
-    // Medal rank is editorial metadata, independent of points and verification status.
-    public sealed class Art
-    {
-        public ArtKind Kind;
-        public int Level;
-        public Tier Tier;
-        public string Badge;
-        public static Art For(Achievement a, IList<Achievement> all)
-        {
-            var art = new Art { Kind = a.Field == "max_health" ? ArtKind.Heart : ArtKind.Gem };
-            art.Level = all.Count(x => !x.IsPlanned && x.Field == a.Field && x.Threshold < a.Threshold);
-            art.Tier = (Tier)a.Rarity;
-            art.Badge = art.Kind == ArtKind.Heart ? (a.Threshold / 4).ToString(CultureInfo.InvariantCulture) : null;
-            return art;
-        }
-        public static string TierName(Tier tier)
-        {
-            switch (tier) { case Tier.Platinum: return "Platino"; case Tier.Gold: return "Oro"; case Tier.Silver: return "Argento"; default: return "Bronzo"; }
-        }
-    }
 
     // Palette and vector artwork inspired by the light Wii U system menus. Every shape is
     // drawn in code: no Nintendo image, sound or font file is used. Text uses Nunito (SIL OFL 1.1).
@@ -450,20 +427,54 @@ namespace WiiUAchievements
             }
         }
 
-        static void TierColors(Tier tier, out Color light, out Color dark)
+        // Rarity metals sampled from the game frames, so pills, ribbons and glows match the medals.
+        public static void TierColors(Tier tier, out Color light, out Color dark)
         {
             switch (tier)
             {
-                case Tier.Platinum: light = Color.FromArgb(206, 248, 255); dark = Color.FromArgb(46, 160, 210); break;
-                case Tier.Gold: light = Color.FromArgb(255, 232, 132); dark = Color.FromArgb(200, 138, 16); break;
-                case Tier.Silver: light = Color.FromArgb(246, 249, 252); dark = Color.FromArgb(132, 146, 158); break;
-                default: light = Color.FromArgb(242, 190, 142); dark = Color.FromArgb(158, 88, 40); break;
+                case Tier.Platinum: light = Color.FromArgb(222, 246, 255); dark = Color.FromArgb(70, 150, 196); break;
+                case Tier.Gold: light = Color.FromArgb(255, 226, 112); dark = Color.FromArgb(196, 132, 14); break;
+                case Tier.Silver: light = Color.FromArgb(236, 242, 248); dark = Color.FromArgb(112, 128, 148); break;
+                default: light = Color.FromArgb(240, 178, 116); dark = Color.FromArgb(150, 78, 32); break;
             }
         }
         public static Color TierColor(Tier tier) { Color light, dark; TierColors(tier, out light, out dark); return Mix(light, dark, 0.55f); }
+        // Light used for rays, sparkles and the popup glow of each rarity.
+        public static Color TierGlow(Tier tier)
+        {
+            switch (tier)
+            {
+                case Tier.Platinum: return Color.FromArgb(170, 236, 255);
+                case Tier.Gold: return Color.FromArgb(255, 212, 84);
+                case Tier.Silver: return Color.FromArgb(206, 226, 255);
+                default: return Color.FromArgb(255, 176, 112);
+            }
+        }
+        // Small metallic ribbon with the rarity name, used under medals and in details.
+        public static void TierRibbon(Graphics g, RectangleF r, Tier tier, string text, float alpha)
+        {
+            if (alpha <= 0.01f) return;
+            Color light, dark;
+            TierColors(tier, out light, out dark);
+            float radius = r.Height / 2;
+            using (var path = Round(r, radius))
+            {
+                var blend = new ColorBlend { Positions = new[] { 0f, 0.45f, 0.55f, 1f },
+                    Colors = new[] { Alpha(Light(light, 0.25f), alpha), Alpha(light, alpha), Alpha(Mix(light, dark, 0.45f), alpha), Alpha(dark, alpha) } };
+                using (var b = new LinearGradientBrush(Inflate(r, 0, 1), light, dark, 90f) { InterpolationColors = blend }) g.FillPath(b, path);
+                using (var pen = new Pen(Alpha(Dark(dark, 0.3f), 0.7f * alpha), 1f)) g.DrawPath(pen, path);
+            }
+            using (var gloss = Round(new RectangleF(r.X + 2, r.Y + 1, r.Width - 4, r.Height * 0.42f), radius - 1)) Fill(g, gloss, Color.FromArgb((int)(90 * alpha), 255, 255, 255));
+            Color ink = tier == Tier.Silver || tier == Tier.Platinum ? Dark(dark, 0.45f) : Color.White;
+            var font = Font(r.Height * 0.62f, Weight.Heavy);
+            if (ink == Color.White) Text(g, text, font, Color.FromArgb((int)(110 * alpha), Dark(dark, 0.5f)), new RectangleF(r.X, r.Y + 0.8f, r.Width, r.Height), StringAlignment.Center, StringAlignment.Center, false);
+            Text(g, text, font, Alpha(ink, alpha), r, StringAlignment.Center, StringAlignment.Center, false);
+        }
 
-        // Achievement medallion: metallic tier ring, themed inner disc, then the gem/heart artwork.
-        public static void Medal(Graphics g, RectangleF r, Art art, float mono)
+        // Game medal (owner icon or glyph in the rarity frame); falls back to the vector medallion.
+        public static void Medal(Graphics g, RectangleF r, Art art, float mono) { Medals.Draw(g, r, art, mono); }
+        // Vector medallion for games without frame artwork: metallic tier ring, inner disc, gem/heart.
+        public static void VectorMedal(Graphics g, RectangleF r, Art art, float mono)
         {
             Color light, dark;
             TierColors(art.Tier, out light, out dark);

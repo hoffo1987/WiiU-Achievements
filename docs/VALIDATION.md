@@ -1,5 +1,38 @@
 # Validation record and reproduction
 
+## Owner icons, rarity frames, game styles and folder layout — 2026-10-30, Windows x64
+
+Inputs: the owner's `icone.zip` (28 RGBA PNGs, 1254 px). Each file name matched an
+achievement title exactly, except "Uno sguardo al mare" → `gear-picto-box`
+("Uno sguardo sul mare"), mapped by an explicit alias. Measured with NumPy: all 28
+share one frame template (alpha mismatch 0.2–0.4 %); the frame metal already
+matches the curated rarity of every icon (18 bronze, 9 silver, 1 gold).
+`tools/prepare-game-art.py` wrote 28 icons, four frames and the sky (3.8 MB total).
+
+Checked:
+
+- Build with the official C# 5 / .NET Framework x64 compiler; all PNGs embedded.
+- `tests/run.ps1`: **322 checks passed**, including the new legacy-source check
+  for builds moved to `build-check/archive/`.
+- `tests/run-ui.ps1` in fresh folders: **77 UI checks passed**, including the new
+  art checks: 28 icons embedded under existing IDs; every frame and the sky
+  present; every Wind Waker objective has its icon or an explicit glyph; owner
+  icons replace exactly 28 objectives; frame rarity equals curated rarity; locked
+  medals are muted versions; different objectives draw different items; medal
+  cache reuse and bound (≤ 160); popup medal turns from grey to colour; one chime
+  per rarity, longer for rarer medals. A second run in the *same* output folder
+  stops at the existing cloud check because account state from the first run is
+  reused there; this is unrelated to the art and was not changed.
+- Rendered and inspected: all 110 medals unlocked/locked (`--preview-medals`),
+  main window with synthetic unlocks at 1120×800 and 900×680, three celebration
+  frames, unlocked/locked detail dialogs, popup frames from 0.3 s to 3.2 s for
+  bronze, silver and gold, and 2× popups. Images are in `docs/screenshots/`.
+
+Not checked: the popup over a running Cemu game, sounds by ear, 150–200 % DPI on a
+real monitor, and the reorganised folder with the user's own data beyond the
+automatic import rules. IDs, points, revision `wwhd-alpha-1`, conditions,
+experimental flags and progress identity are unchanged; no award was made.
+
 ## Shared progress recovery and existing-save recognition — 2026-10-30
 
 Root cause confirmed by comparing exact-identity local progress files: the

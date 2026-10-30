@@ -29,6 +29,11 @@ These instructions apply to this entire project. Read `HANDOFF.md` first, then
 - Read `docs/COLLABORATION.md` before combining contributions from other agents.
 - The UI is custom-drawn (`docs/UI.md`). Keep artwork and sounds original and
   code-generated. Do not add Nintendo images, logos, Miis, sounds or system fonts.
+  Exception: `assets/games/<game>/` holds medal icons and rarity frames supplied by
+  the project owner (2026-10-30) and derived with `tools/prepare-game-art.py`. Add
+  such art only on the owner's explicit request; never rip files from a game.
   The only third-party asset is Nunito (SIL OFL 1.1): keep `assets/fonts/OFL.txt`.
+- Each game has its own `GameStyle` (palette, frames, motif) inside the shared Wii U
+  chrome; rarity (bronze/silver/gold/platinum) drives frames, ribbons, glows and chime.
 - UI state must not change engine, memory or persistence semantics. Keep sampling
   in `MainForm.cs` and presentation in `MainForm.Ui.cs`.

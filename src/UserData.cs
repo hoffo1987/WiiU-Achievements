@@ -25,7 +25,10 @@ namespace WiiUAchievements
                 if (Directory.Exists(builds))
                 {
                     result.Add(Path.Combine(builds, "data"));
-                    foreach (string build in Directory.GetDirectories(builds).OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                    // Retired builds are moved to build-check/archive/ and still count as sources.
+                    string archive = Path.Combine(builds, "archive");
+                    var candidates = Directory.GetDirectories(builds).Concat(Directory.Exists(archive) ? Directory.GetDirectories(archive) : new string[0]);
+                    foreach (string build in candidates.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
                         if (File.Exists(Path.Combine(build, "WiiUAchievements.exe"))) result.Add(Path.Combine(build, "data"));
                 }
                 break;

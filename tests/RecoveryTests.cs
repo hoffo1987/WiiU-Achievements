@@ -32,8 +32,13 @@ static class RecoveryTests
         File.WriteAllText(Path.Combine(repo, "HANDOFF.md"), "fixture");
         File.WriteAllText(Path.Combine(repo, "build.ps1"), "fixture");
         File.WriteAllText(Path.Combine(old, "WiiUAchievements.exe"), "fixture, never executed");
+        string retired = Path.Combine(repo, "build-check", "archive", "2026-10-28-ui");
+        Directory.CreateDirectory(retired);
+        File.WriteAllText(Path.Combine(retired, "WiiUAchievements.exe"), "fixture, never executed");
         var directories = UserData.LegacyDirectories(old);
         check(directories[0] == Path.Combine(old, "data") && directories.Contains(Path.Combine(repo, "data")), "Migration prefers active legacy build and discovers the source archive");
+        check(directories.Contains(Path.Combine(retired, "data")) && directories.Distinct(StringComparer.OrdinalIgnoreCase).Count() == directories.Length,
+            "Builds moved to build-check/archive remain legacy progress sources");
         check(Path.IsPathRooted(UserData.DefaultDirectory) && !UserData.DefaultDirectory.StartsWith(repo, StringComparison.OrdinalIgnoreCase), "Production archive lives outside version-specific build folders");
         string legacy = Path.Combine(old, "data"), shared = Path.Combine(root, "shared");
         Directory.CreateDirectory(legacy);
