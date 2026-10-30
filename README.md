@@ -23,7 +23,7 @@ stabilizzazione della partita. Vedi [recupero e limiti](docs/PROGRESS-RECOVERY.m
 
 
 **Caricamenti automatici (30 ottobre 2026):** la build di allora era in
-`build-check/archive/firebase-final/`. Puoi collegarti anche dalla selezione file e
+`build-check/archive/2026-10-30-firebase-final/`. Puoi collegarti anche dalla selezione file e
 lasciare l'app attiva durante i caricamenti; attesa, ripresa e ricollegamento
 sono automatici per Cemu 2.6 / EUR v0 / cdc68acd. Vedi
 [prove e limiti](docs/AUTOMATIC-LOADS.md). Il progetto Firebase esistente è già
