@@ -1,4 +1,4 @@
-# Game catalog and adapters (alpha 0.3)
+# Game catalog and adapters
 
 The **Giochi** button, or **G**, opens the catalog. The selected game's card
 opens its achievements. **B / Esc** returns. Browsing the catalog does not stop,
@@ -21,7 +21,8 @@ No new achievements or memory offsets were added in alpha 0.3.
 - `GameProfile`: exact emulator version, Title ID, title version and RPX hash,
   plus a reader factory. All four identifiers must match before process access.
 - `IGameMemoryReader`: reads a snapshot for the selected profile. Its first
-  implementation, `WindWakerMemoryReader`, uses the original six-byte header.
+  implementation, `WindWakerMemoryReader`, reads the guarded save window and gameplay context documented in `MEMORY-MAP.md`
+  and `AUTOMATIC-LOADS.md`.
 
 `MainForm.Connect` uses the selected definition and profile instead of its own
 hardcoded game check and memory address. An unsupported configuration is rejected
@@ -50,7 +51,7 @@ clears the displayed old game's state, and leaves all progress files intact.
    load, save-slot, reconnect and emulator-restart validation.
 5. Add original artwork appropriate to the game. The existing achievement banner
    remains Wind Waker's sea artwork; the catalog uses a neutral icon for other
-   entries. Do not add Nintendo assets.
+   entries. Only add owner-supplied artwork on explicit request; never rip game files.
 6. Add new set/assets to `package.ps1`'s explicit allowlist.
 
 The catalog automatically lays out registered cards, adds rows when needed,

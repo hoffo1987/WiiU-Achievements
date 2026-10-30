@@ -15,7 +15,8 @@ try {
     $names = @('AGENTS.md', 'HANDOFF.md', 'README.md', 'NEXT-STEPS.md', '.gitignore',
         'build.ps1', 'package.ps1', 'verify-package.ps1', '.firebaserc', 'firebase.json', 'firestore.rules',
         'src\UserData.cs', 'src\CloudProject.cs', 'src\Gameplay.cs', 'src\CloudSync.cs', 'src\GameCatalog.cs', 'src\MainForm.Library.cs', 'src\MainForm.Tiles.cs', 'src\Core.cs', 'src\GameSession.cs', 'src\MainForm.cs', 'src\MainForm.Ui.cs', 'src\MemoryReader.cs', 'src\Program.cs',
-        'src\Theme.cs', 'src\Banner.cs', 'src\Notification.cs', 'src\WindWakerProgression.cs', 'src\GameStyle.cs', 'src\Medals.cs', 'src\Glyphs.cs', 'src\VideoBanner.cs', 'tools\prepare-game-art.py',
+        'src\Theme.cs', 'src\Banner.cs', 'src\Notification.cs', 'src\WindWakerProgression.cs', 'src\GameStyle.cs', 'src\GameStyle.Assets.cs', 'src\BrandArt.cs', 'src\Medals.cs', 'src\Glyphs.cs', 'src\VideoBanner.cs', 'tools\prepare-game-art.py', 'tools\prepare-ui-art.py',
+        'assets\brand\logo.png', 'assets\brand\app-icon.png', 'assets\brand\app.ico', 'tools\render-docs.ps1', 'tools\RenderDocumentation.cs',
         'assets\fonts\Nunito-Regular.ttf', 'assets\fonts\Nunito-Bold.ttf', 'assets\fonts\Nunito-ExtraBold.ttf', 'assets\fonts\OFL.txt',
         'docs\UI.md', 'docs\GAMES.md', 'docs\screenshots\games.png', 'docs\screenshots\paused.png', 'docs\screenshots\main.png', 'docs\screenshots\unlock.png', 'docs\screenshots\detail.png', 'docs\screenshots\settings.png', 'docs\screenshots\toast.png',
         'docs\screenshots\medals.png', 'docs\screenshots\medals-locked.png', 'docs\screenshots\toast-timeline.png', 'docs\screenshots\toast-silver.png', 'docs\screenshots\toast-bronze.png', 'docs\screenshots\detail-locked.png', 'docs\screenshots\growth.png', 'docs\screenshots\drawer.png',
@@ -44,7 +45,7 @@ try {
     $manifest = [ordered]@{
         schemaVersion = 1
         project = 'Wii U Achievements'
-        version = 'alpha-0.6-ultrawide-ui-art'
+        version = 'alpha-0.6-nautical-ui'
         generatedAtUtc = [DateTime]::UtcNow.ToString('o')
         testsPassedDuringPackaging = (-not $SkipTests.IsPresent)
         personalDataIncluded = $false

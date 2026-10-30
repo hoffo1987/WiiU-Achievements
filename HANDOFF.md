@@ -1,4 +1,46 @@
+# Current documentation entry point
+
+Current local executable: root `WiiUAchievements.exe`. Read `README.md` for the
+current user guide, `docs/UI.md` for the final visual composition, and
+`docs/VALIDATION.md` for dated evidence. The detailed handoff below includes
+historical milestones; later progress recovery and automatic-load findings
+supersede older event-only/manual-load statements.
+
+Public images are generated with `tools/render-docs.ps1`, isolated synthetic
+progress, no Cemu and no personal account. Never publish real user state.
+The owner authorized pushing all current source/artwork/docs to GitHub `main`;
+this does not authorize unrelated future external actions. No local ZIP is needed.
+
 # Start here — handoff for another AI or developer
+
+**Owner clarification: retain nautical decoration (2026-10-30):** wind/water
+motifs, the original parchment and the simple blue/gold frames are wanted.
+Restored their visibility while keeping the revised logo positions and separate
+banner status row. `SimpleFrame` copies proportional corner pieces and tiles
+straight border strips; it does not stretch a whole illustrated panel. See the
+latest `docs/UI.md` / `docs/VALIDATION.md`. Keep this balance in future UI work.
+
+**Owner-requested composition review (2026-10-30):** the initial full-kit layout
+was too busy. The follow-up removes unnecessary decorations/stretched sprite
+panels, centres the project brand in a taller header, gives the Wind Waker logo
+its own clear centred area (without the extra crest), moves status/live values
+below the banner image, and uses one centred round badge in the catalog.
+Parchment and shadows are quieter. See the latest `docs/UI.md` section and
+`docs/VALIDATION.md` record. The prepared kit stays available, but use selected
+ornaments with restraint; do not force every asset onto the screen. Current EXE
+still belongs in the project root; no extra ZIP. This is presentation only.
+
+**Full owner UI kit, logos and partial-paint fix (2026-10-30):** the root
+`WiiUAchievements.exe` is the current build. The owner's full UI ZIP is prepared
+into 40 game-only ornaments/sprites; the project logo and trophy icon live under
+`assets/brand/`, and the two Wind Waker logos are game resources. See `docs/UI.md`.
+The erased stripe through the chapter filter was a paint-culling bug: the tabs'
+paint band stopped above the lower filter row. A pixel regression fails on the
+old EXE and passes at 100/125/150/200 % rendering scale. Engine, memory, IDs,
+revision and progress are unchanged; see the latest `docs/VALIDATION.md` record.
+Owner preference: **keep the current EXE in the project root, and create no ZIP
+or versioned output folder unless explicitly requested or necessary** (isolated
+tests/running EXE). The disconnected old window was closed for this replacement.
 
 **Ultrawide performance and owner UI art (2026-10-30):** scrolling at 3440×1440
 went from 120 ms to 8 ms per frame (adaptive card cache, region invalidation,
@@ -11,8 +53,8 @@ game now uses that game's full chrome (`GameStyle` palette + ornaments after the
 medal frames); the Games catalog stays neutral. The banner plays the owner's Outset
 Island video through Windows Media Foundation (`src/VideoBanner.cs`), with the drawn
 sea as fallback. See `docs/UI.md` (Game styles, Banner video) and the latest
-`docs/VALIDATION.md` record. The video is third-party footage: the GitHub repository
-is public, so confirm with the owner before publishing it there.
+`docs/VALIDATION.md` record. The video is owner-supplied third-party footage. The owner explicitly requested
+publishing the current source/assets/docs to GitHub main on 2026-10-30.
 
 **Game styles and owner icons (2026-10-30):** the root `WiiUAchievements.exe` is
 the current main build (progress recovery + this change); older builds were moved
@@ -93,10 +135,11 @@ The user wants a RetroAchievements-like system for Wii U games on PC, beginning
 with **The Legend of Zelda: The Wind Waker HD** in **Cemu 2.6**. They explicitly
 requested a fresh implementation, **not one built on EmuHook**.
 
-The current result is an original Windows x64 WinForms application written in
+The implementation is a Windows x64 WinForms application written in
 C# 5, using .NET Framework and the Win32 read-only process APIs. It runs beside
-Cemu. It reads rupees and hearts, evaluates sixteen simple threshold achievements,
-shows a desktop notification, and persists local progress. It is not integrated
+Cemu. It evaluates 70 executable objectives (including 53 experimental detectors),
+keeps 40 unimplemented targets separate, shows desktop notifications and
+persists shared local progress with optional cloud sync. It is not integrated
 with RetroAchievements accounts or servers.
 
 **Catalog expansion (2026-10-28):** the current source has **110 objectives**:
@@ -168,13 +211,16 @@ Open this folder in your editor. On Windows, run these commands from its root:
 # Existing binary: normal UI, explicit connection button
 .\WiiUAchievements.exe
 
-# Rebuild without overwriting an app that may currently be running
+# Rebuild the current root EXE (close the disconnected application first)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+
+# Only when needed: test an isolated build without replacing a running EXE
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -OutputDirectory .\build-check
 
 # No Cemu or game required; includes a synthetic Win32 child-process fixture
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run.ps1
 
-# Build, test, and create a clean, shareable archive next to this folder
+# Only on explicit request: build, test and create a shareable archive
 powershell -NoProfile -ExecutionPolicy Bypass -File .\package.ps1
 ```
 

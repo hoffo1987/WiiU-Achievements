@@ -1,4 +1,31 @@
+# Prossime attività
+
+Usare l'EXE nella directory principale. L'interfaccia mantiene loghi centrati,
+pergamena, vento, onde e cornici semplici senza deformazioni. Le immagini pubbliche
+si rigenerano con `tools/render-docs.ps1`, usando soltanto dati sintetici.
+
+1. Prove live di morte/continua, nuova partita/modalità eroe e due slot diversi.
+2. Playtesting progressivo dei 53 rilevamenti sperimentali.
+3. Ricerca mirata dei 40 traguardi non implementati, con prove della versione esatta.
+4. Controllo della notifica sopra le modalità fullscreen di Cemu usate dal giocatore.
+
+La sincronizzazione cloud e i flussi automatici già verificati sono descritti in
+`docs/CLOUD.md` e `docs/AUTOMATIC-LOADS.md`. Non cambiare ID o revisione dei progressi.
+
+## Cronologia delle priorità precedenti
+
+Le cartelle e i numeri nelle note seguenti sono riferimenti storici, non il
+percorso della build attuale.
+
 # Prossimo ciclo di sviluppo
+
+**Interfaccia aggiornata, 30 ottobre 2026:** usare `WiiUAchievements.exe` nella
+directory principale. Il kit completo e i loghi forniti dal proprietario sono
+disponibili; la composizione rivista usa pochi decori, loghi centrati senza
+deformazioni e stato separato dal banner. Corretto il ridisegno parziale dei
+filtri. Non creare ZIP o cartelle
+di build aggiuntive salvo richiesta o necessità tecnica. Le priorità di prova
+su Cemu elencate sotto restano valide; nessun rilevamento è stato modificato.
 
 La correzione dei progressi del 30 ottobre usa un archivio comune a tutte le
 versioni, recupera gli ID dalle vecchie build senza alterarne le date e riconosce

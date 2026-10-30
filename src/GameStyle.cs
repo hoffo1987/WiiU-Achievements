@@ -11,7 +11,7 @@ namespace WiiUAchievements
     // Each game section is dressed in its own style inside the Wii U layout: backdrop, bars,
     // buttons, tabs, cards, panels, banner, medal frames and popup take the game's palette and
     // ornaments. The Games catalog and games without a style use the neutral Wii U look.
-    public sealed class GameStyle
+    public sealed partial class GameStyle
     {
         public string GameId { get; private set; }
         public bool Themed { get; private set; }
@@ -53,16 +53,16 @@ namespace WiiUAchievements
         {
             GameId = GameCatalog.WindWakerId, Themed = true, Accent = C(0, 150, 206), AccentDark = C(0, 92, 158),
             Glow = C(86, 214, 242), Soft = C(218, 243, 251), Warm = C(250, 236, 196), Deep = C(4, 70, 136),
-            BackTop = C(236, 247, 251), BackBottom = C(204, 230, 240), Muted = C(126, 114, 98), Trim = C(240, 194, 80), TrimDark = C(140, 90, 28),
-            BarTop = C(255, 252, 242), BarBottom = C(243, 232, 206), BarLine = C(190, 150, 84),
-            FootTop = C(251, 246, 230), FootBottom = C(236, 222, 190), FootLine = C(190, 150, 84),
-            ButtonTop = C(255, 253, 246), ButtonBottom = C(241, 230, 202), ButtonEdge = C(198, 156, 88), ButtonInk = C(76, 52, 34), GlyphFill = C(122, 84, 50), GlyphInk = C(255, 244, 214),
+            BackTop = C(239, 248, 251), BackBottom = C(221, 238, 244), Muted = C(116, 112, 103), Trim = C(240, 194, 80), TrimDark = C(140, 90, 28),
+            BarTop = C(255, 254, 250), BarBottom = C(249, 245, 233), BarLine = C(205, 184, 139),
+            FootTop = C(254, 251, 243), FootBottom = C(246, 239, 221), FootLine = C(205, 184, 139),
+            ButtonTop = C(255, 254, 249), ButtonBottom = C(248, 242, 226), ButtonEdge = C(198, 171, 114), ButtonInk = C(76, 52, 34), GlyphFill = C(122, 84, 50), GlyphInk = C(255, 244, 214),
             PrimaryTop = C(38, 178, 222), PrimaryBottom = C(0, 100, 168), PrimaryEdge = C(170, 120, 36), PrimaryInk = Color.White,
             PrimaryGlyph = C(255, 230, 150), PrimaryGlyphInk = C(0, 84, 140),
             TrackTop = C(236, 223, 194), TrackBottom = C(246, 238, 218), TrackEdge = C(204, 176, 124),
             BubbleTop = C(38, 178, 222), BubbleBottom = C(0, 92, 158), BubbleOffTop = C(208, 188, 150), BubbleOffBottom = C(184, 160, 118),
-            CardTop = C(255, 254, 250), CardBottom = C(248, 240, 222), CardLockedTop = C(252, 250, 245), CardLockedBottom = C(239, 233, 220), CardEdge = C(220, 200, 160),
-            SheetTop = C(254, 250, 240), SheetBottom = C(240, 229, 204), Drawer = Color.FromArgb(252, 8, 46, 82)
+            CardTop = C(255, 254, 250), CardBottom = C(250, 245, 231), CardLockedTop = C(255, 254, 250), CardLockedBottom = C(247, 244, 235), CardEdge = C(224, 211, 183),
+            SheetTop = C(255, 253, 246), SheetBottom = C(247, 241, 225), Drawer = Color.FromArgb(252, 8, 46, 82)
         };
 
         public static GameStyle For(string gameId)
@@ -156,7 +156,7 @@ namespace WiiUAchievements
             if (scaled.TryGetValue(key, out bitmap)) return bitmap;
             var source = Load(relative);
             if (source == null || width < 1 || height < 1) return null;
-            if (scaled.Count >= 48) { foreach (var old in scaled.Values) old.Dispose(); scaled.Clear(); }
+            if (scaled.Count >= 160) { foreach (var old in scaled.Values) old.Dispose(); scaled.Clear(); }
             bitmap = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
             using (var g = Graphics.FromImage(bitmap))
             using (var a = new ImageAttributes())
@@ -207,11 +207,15 @@ namespace WiiUAchievements
         const float ParchmentTile = 0.6f;
         public void Parchment(Graphics g, GraphicsPath area, float alpha)
         {
-            var source = Themed ? Load("ui/parchment.png") : null;
+            ParchmentTexture(g, area, alpha, "ui/parchment.png");
+        }
+        void ParchmentTexture(Graphics g, GraphicsPath area, float alpha, string relative)
+        {
+            var source = Themed ? Load(relative) : null;
             if (source == null || alpha <= 0) return;
             float scale = DeviceScale(g);
             int size = Math.Max(8, (int)Math.Round(source.Width * ParchmentTile * scale));
-            var texture = Scaled("ui/parchment.png", size, size, alpha);
+            var texture = Scaled(relative, size, size, alpha);
             var interpolation = g.InterpolationMode;
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
             using (var brush = new TextureBrush(texture, WrapMode.Tile))
@@ -278,6 +282,22 @@ namespace WiiUAchievements
         public void WaveBand(Graphics g, RectangleF r, float phase, float alpha)
         {
             if (!Themed || r.Width < 4) return;
+            if (Load("ui/wave-0.png") != null)
+            {
+                var clip = g.Save();
+                g.SetClip(r, CombineMode.Intersect);
+                float x = r.X - r.Height * 2;
+                for (int i = 0; x < r.Right; i++)
+                {
+                    string name = "ui/wave-" + (i % 6) + ".png";
+                    var source = Load(name);
+                    float waveWidth = r.Height * source.Width / source.Height;
+                    DrawArt(g, name, new RectangleF(x, r.Y, waveWidth, r.Height), alpha);
+                    x += waveWidth - r.Height * 0.08f;
+                }
+                g.Restore(clip);
+                return;
+            }
             float w = r.Height * 2.6f, start = r.X - w + (phase % 1) * w;
             var state = g.Save();
             g.SetClip(new RectangleF(r.X, r.Y - r.Height, r.Width, r.Height * 2), CombineMode.Intersect);
@@ -352,69 +372,42 @@ namespace WiiUAchievements
         public void DecorateBackdrop(Graphics g, Size size, float scale)
         {
             if (!Themed) return;
-            // Faint wind spirals, like the sail emblem, scattered over the sky.
-            using (var pen = new Pen(Color.FromArgb(22, 0, 110, 170), 2.4f * scale) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-                for (int i = 0; i < 9; i++)
-                {
-                    float x = size.Width * ((i * 0.37f + 0.11f) % 1), y = size.Height * ((i * 0.53f + 0.27f) % 1), s = (34 + i % 3 * 14) * scale;
-                    var points = new PointF[18];
-                    for (int k = 0; k < points.Length; k++)
-                    {
-                        float t = k / 17f, a = (float)(Math.PI * 2 * 1.2 * t), rr = s * (1 - 0.8f * t);
-                        points[k] = new PointF(x + (float)Math.Cos(a) * rr, y + (float)Math.Sin(a) * rr * 0.75f);
-                    }
-                    g.DrawCurve(pen, points);
-                }
-            // The sea along the bottom of the window, behind the bottom bar's own waves.
-            WaveBand(g, new RectangleF(0, size.Height - 120 * scale, size.Width, 26 * scale), 0.3f, 0.16f);
+            // Wind sits in open sky/gaps, at its natural aspect ratio; the logo zones stay clear.
+            DrawArt(g, "ui/wind-0.png", new RectangleF(size.Width * 0.08f, size.Height * 0.4f, 180 * scale, 80 * scale), 0.16f);
+            DrawArt(g, "ui/wind-2.png", new RectangleF(size.Width * 0.35f, size.Height * 0.65f, 230 * scale, 90 * scale), 0.14f);
+            DrawArt(g, "ui/wind-ribbon.png", new RectangleF(size.Width * 0.59f, 332 * scale, 245 * scale, 76 * scale), 0.12f);
+            DrawArt(g, "ui/wind-scroll.png", new RectangleF(size.Width - 300 * scale, size.Height - 180 * scale, 250 * scale, 80 * scale), 0.1f);
         }
         public void DecorateTopBar(Graphics g, float width, float height)
         {
             if (!Themed) return;
-            Parchment(g, new RectangleF(0, 0, width, height), 0, 0.45f);
-            TrimLine(g, 0, width, height - 1.5f, 2.2f);
+            Parchment(g, new RectangleF(0, 0, width, height), 0, 0.4f);
         }
         public void DecorateFooter(Graphics g, RectangleF r, float phase)
         {
             if (!Themed) return;
-            Parchment(g, r, 0, 0.45f);
-            WaveBandCached(g, new RectangleF(r.X, r.Y - 9, r.Width, 11), phase, 1);
-            TrimLine(g, r.X, r.Right, r.Y + 2.5f, 2.2f);
+            Parchment(g, r, 0, 0.4f);
+            WaveBandCached(g, new RectangleF(r.X, r.Y - 9, r.Width, 11), phase, 0.9f);
+            using (var pen = new Pen(BarLine, 1)) g.DrawLine(pen, r.X, r.Y + 0.5f, r.Right, r.Y + 0.5f);
         }
         // Parchment card with a faint wave in the corner; earned gold/platinum cards get the gold corners.
         public void DecorateCard(Graphics g, RectangleF r, float radius, bool ornate)
         {
             if (!Themed) return;
-            Parchment(g, r, radius, 0.5f);
+            Parchment(g, r, radius, 0.45f);
             var state = g.Save();
             using (var clip = Theme.Round(r, radius)) g.SetClip(clip, CombineMode.Intersect);
-            Wave(g, r.Right - 70, 64, r.Bottom - 15, r.Bottom + 2, false, 0.22f);
-            Wave(g, r.Right - 34, 52, r.Bottom - 11, r.Bottom + 2, false, 0.3f);
+            DrawArt(g, "ui/ocean-wave.png", new RectangleF(r.Right - 102, r.Bottom - 22, 102, 23), 0.14f);
             g.Restore(state);
-            if (ornate && HasUiArt) Corners(g, r, 24, 4);
+            if (ornate && HasUiArt) SimpleCorners(g, r, 19);
         }
         // Ornate border for dialogs and the settings sheet: gold rule, owner corners and crest
         // (or drawn corner waves and scroll crest when the art is missing).
-        public void DecoratePanel(Graphics g, RectangleF r, float radius, bool crest)
+        public void DecoratePanel(Graphics g, RectangleF r, float radius)
         {
             if (!Themed) return;
-            using (var pen = new Pen(Outline, 4.2f)) using (var path = Theme.Round(Theme.Inflate(r, -3, -3), radius - 3)) g.DrawPath(pen, path);
-            using (var b = new LinearGradientBrush(Theme.Inflate(r, 0, 1), Theme.Light(Trim, 0.35f), TrimDark, 90f))
-            using (var pen = new Pen(b, 2.4f)) using (var path = Theme.Round(Theme.Inflate(r, -3, -3), radius - 3)) g.DrawPath(pen, path);
-            if (HasUiArt)
-            {
-                Corners(g, r, 64, 6);
-                if (crest) Crest(g, new PointF(r.X + r.Width / 2, r.Y + 3), Math.Min(320, r.Width * 0.6f), 1);
-                return;
-            }
-            var state = g.Save();
-            using (var clip = Theme.Round(Theme.Inflate(r, -5, -5), radius - 5)) g.SetClip(clip, CombineMode.Intersect);
-            Wave(g, r.X - 6, 74, r.Bottom - 26, r.Bottom + 4, true, 0.9f);
-            Wave(g, r.X + 34, 58, r.Bottom - 18, r.Bottom + 4, true, 0.9f);
-            Wave(g, r.Right - 68, 74, r.Bottom - 26, r.Bottom + 4, false, 0.9f);
-            Wave(g, r.Right - 92, 58, r.Bottom - 18, r.Bottom + 4, false, 0.9f);
-            g.Restore(state);
-            if (crest) Crest(g, new PointF(r.X + r.Width / 2, r.Y + 2), 22);
+            if (!SimpleFrame(g, r, false, 12))
+                Theme.Stroke(g, Theme.Inflate(r, -1, -1), radius - 1, ButtonEdge, 1.2f);
         }
         // Compass rose ring around the completion dial.
         public void CompassRing(Graphics g, PointF c, float radius)

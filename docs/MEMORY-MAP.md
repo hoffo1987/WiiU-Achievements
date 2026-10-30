@@ -151,17 +151,19 @@ Further live checks in the same exact profile:
 EUR v0 only.** The production reader now reads this one extra byte and exposes
 only mask `0x80` as boolean `hero_clothes`. `story-heros-clothes` is active and
 keeps its existing ID/revision. No other inventory candidates are promoted.
-An already-set flag on connection does not unlock it. The demo does not simulate
-the flag. Automatic gameplay/save-slot detection is still absent: use manual
-pause/disconnect before loading saves. Real Cemu restart stability and a full-game
-run are unverified. This is a targeted map validation, not a certified profile.
+The earlier event-only policy is superseded for production: a stable loaded
+flag can now be recognized after the gameplay gate and confirmations. The demo
+does not simulate this flag. Automatic load/reconnect flows are documented in
+`AUTOMATIC-LOADS.md`; save slots still share the local profile identity. A full-game
+run remains unverified. This is a targeted map validation, not a certified profile.
 The user subsequently confirmed the corrected application's tunic unlock popup
 during a new acquisition; the local progress XML contained exactly one saved
 `story-heros-clothes` entry. The original source ID/revision were retained.
 
 The fixed header's stability across real Cemu restarts, game loads, all menus,
-and the full game remains unverified. No inventory, boss, or stage offset is
-validated in this project yet. Do not infer those offsets from the header's
+and the full game remains limited to the recorded live evidence. Gameplay
+scene signals are documented above; other inventory/boss candidates retain
+their individual experimental status. Do not infer those offsets from the header's
 successful rupee test.
 
 For each future field record:

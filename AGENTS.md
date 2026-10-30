@@ -16,6 +16,9 @@ These instructions apply to this entire project. Read `HANDOFF.md` first, then
 - Package: `powershell -NoProfile -ExecutionPolicy Bypass -File .\package.ps1`.
 - The app may be running beside Cemu. Build to a separate output directory using
   `build.ps1 -OutputDirectory <path>` instead of disrupting the live session.
+- The current local EXE belongs in the project root. Do not create extra ZIPs or
+  versioned output folders unless requested or necessary for isolated tests/a
+  running EXE. Close only a disconnected app before replacing its root EXE.
 - Never treat a guest address as a host process address: host = guestBase + guest.
 - Keep verified findings separate from hypotheses. New offsets need live evidence
   for the exact region/version, plus menu/load/reconnect checks before release.
@@ -30,12 +33,19 @@ These instructions apply to this entire project. Read `HANDOFF.md` first, then
 - The UI is custom-drawn (`docs/UI.md`). Keep artwork and sounds original and
   code-generated. Do not add Nintendo images, logos, Miis, sounds or system fonts.
   Exception: `assets/games/<game>/` holds medal icons, rarity frames, a banner
-  video and UI art (corners, crest, parchment) supplied by the project owner
+  video, game logos and UI art (corners, crests, parchment, waves, sprite frames) supplied by the project owner
   (2026-10-30); icons/frames are derived with `tools/prepare-game-art.py`, the video
-  only had its audio removed, the UI art was cropped to its bounds. Add
+  only had its audio removed. `tools/prepare-ui-art.py` crops/resizes the owner's
+  full UI ZIP and logos, including the shared project logo/icon in `assets/brand/`. Add
   such art only on the owner's explicit request; never rip files from a game.
   The only third-party asset is Nunito (SIL OFL 1.1): keep `assets/fonts/OFL.txt`.
 - Each game has its own `GameStyle` (palette, frames, motif) inside the shared Wii U
   chrome; rarity (bronze/silver/gold/platinum) drives frames, ribbons, glows and chime.
+- Owner's composition preference: use only useful decorations, preserve image
+  aspect ratios, centre logos in deliberately reserved space, and keep status
+  text separate from the banner art. Do not force the entire asset kit on screen
+  or stretch illustrated panels into controls. See the latest `docs/UI.md`.
+  Wind/water motifs, visible parchment and simple blue/gold frames are explicitly
+  wanted; preserve them within that layout instead of stripping the theme out.
 - UI state must not change engine, memory or persistence semantics. Keep sampling
   in `MainForm.cs` and presentation in `MainForm.Ui.cs`.

@@ -12,6 +12,12 @@ $resources = @(@('Nunito-Regular.ttf', 'Nunito-Bold.ttf', 'Nunito-ExtraBold.ttf'
     if (-not (Test-Path -LiteralPath $font)) { throw ('Font mancante: ' + $font) }
     '/resource:' + $font + ',WiiUAchievements.Fonts.' + $_
 })
+# The project owner's brand is shared by every game; game logos stay per-game.
+$brand = Join-Path $PSScriptRoot 'assets\brand'
+$resources += @(Get-ChildItem -LiteralPath $brand -Filter '*.png' -File | Sort-Object Name | ForEach-Object {
+    '/resource:' + $_.FullName + ',WiiUAchievements.Brand.' + $_.Name
+})
+$appIcon = Join-Path $brand 'app.ico'
 # Per-game artwork (owner icons, rarity frames, sky, banner video) becomes WiiUAchievements.Games.<game>.<path>.
 $games = Join-Path $PSScriptRoot 'assets\games'
 if (Test-Path -LiteralPath $games) {
@@ -19,7 +25,7 @@ if (Test-Path -LiteralPath $games) {
         '/resource:' + $_.FullName + ',WiiUAchievements.Games.' + $_.FullName.Substring($games.Length + 1).Replace('\', '.')
     })
 }
-& $compiler /nologo /langversion:5 /target:winexe /platform:x64 /optimize+ /utf8output /r:System.Xml.Linq.dll /r:System.Web.Extensions.dll /r:System.Security.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:Accessibility.dll $resources "/out:$output\WiiUAchievements.exe" $sources
+& $compiler /nologo /langversion:5 /target:winexe /platform:x64 /optimize+ /utf8output /r:System.Xml.Linq.dll /r:System.Web.Extensions.dll /r:System.Security.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:Accessibility.dll "/win32icon:$appIcon" $resources "/out:$output\WiiUAchievements.exe" $sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilazione applicazione fallita.' }
 if ($output.TrimEnd('\') -ne $PSScriptRoot.TrimEnd('\')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'achievements.xml') -Destination $output -Force

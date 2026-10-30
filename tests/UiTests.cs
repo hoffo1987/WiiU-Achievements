@@ -128,6 +128,55 @@ class UiTests
         }
         Set(form, "scroll", 0f); Set(form, "scrollTarget", 0f);
     }
+    static void PartialPaintChecks(MainForm form, string output)
+    {
+        Size originalSize = form.ClientSize;
+        float originalScale = (float)Get(form, "scale");
+        Set(form, "introStart", -10f); Set(form, "hovered", null); Set(form, "focused", null);
+        foreach (float dpi in new[] { 1f, 1.25f, 1.5f, 2f })
+        {
+            Set(form, "scale", dpi);
+            form.ClientSize = new Size((int)(1120 * dpi), (int)(800 * dpi));
+            Call(form, "ClearLayers"); Call(form, "ClearTileImages"); Call(form, "Arrange");
+            Set(form, "tabX", -1f);
+            using (var expected = new Bitmap(form.ClientSize.Width, form.ClientSize.Height))
+            {
+                using (var g = Graphics.FromImage(expected)) Call(form, "Render", g, new RectangleF(0, 0, 1120, 800));
+                using (var actual = new Bitmap(expected))
+                {
+                    // These strips start below the old DrawTabs guard. Repainting them used
+                    // to erase a horizontal band through the buttons and the adjacent help.
+                    var regions = new List<RectangleF>();
+                    foreach (string id in new[] { "category", "chapter" })
+                    {
+                        var r = (RectangleF)Get(Widget(form, id), "Bounds");
+                        regions.Add(new RectangleF(r.X + 18, r.Y + 10, r.Width - 24, 14));
+                    }
+                    var chapter = (RectangleF)Get(Widget(form, "chapter"), "Bounds");
+                    regions.Add(new RectangleF(chapter.Right + 10, chapter.Y + 9, 210, 14));
+                    foreach (var region in regions)
+                        using (var g = Graphics.FromImage(actual))
+                        {
+                            g.SetClip(new RectangleF(region.X * dpi, region.Y * dpi, region.Width * dpi, region.Height * dpi));
+                            Call(form, "Render", g, region);
+                        }
+                    int changed = 0;
+                    foreach (var region in regions)
+                        for (int y = (int)(region.Top * dpi) + 1; y < (int)(region.Bottom * dpi) - 1; y++)
+                            for (int x = (int)(region.Left * dpi) + 1; x < (int)(region.Right * dpi) - 1; x++)
+                            {
+                                var a = actual.GetPixel(x, y); var b = expected.GetPixel(x, y);
+                                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 6) changed++;
+                            }
+                    Check(changed == 0, "Partial filter/help repaints match a complete frame at " + dpi + " scale (different pixels: " + changed + ")");
+                    if (dpi == 1) actual.Save(Path.Combine(output, "partial-filters.png"));
+                    if (dpi == 2) actual.Save(Path.Combine(output, "main-200.png"));
+                }
+            }
+        }
+        Set(form, "scale", originalScale); form.ClientSize = originalSize;
+        Call(form, "ClearLayers"); Call(form, "ClearTileImages"); Call(form, "Arrange");
+    }
     // Average saturation (max-min channel spread) of opaque pixels in the central square.
     static double Saturation(Bitmap bitmap)
     {
@@ -147,6 +196,15 @@ class UiTests
         var rules = (List<Achievement>)Get(form, "rules");
         string prefix = "WiiUAchievements.Games." + GameCatalog.WindWakerId + ".";
         var resources = typeof(MainForm).Assembly.GetManifestResourceNames().Where(n => n.StartsWith(prefix)).ToList();
+        Check(BrandArt.Available && typeof(MainForm).Assembly.GetManifestResourceNames().Contains("WiiUAchievements.Brand.logo.png"),
+            "Owner project logo and trophy icon are embedded independently of game art");
+        Check(resources.Contains(prefix + "logo.png") && resources.Contains(prefix + "badge.png") && resources.Count(n => n.StartsWith(prefix + "ui.")) == 40,
+            "Both Wind Waker logos and all 40 prepared UI ornaments/sprites are embedded");
+        using (var neutral = new Bitmap(160, 80))
+        using (var g = Graphics.FromImage(neutral))
+            Check(!GameStyle.Neutral.DrawArt(g, "ui/wind-ribbon.png", new RectangleF(0, 0, 160, 80), 1) &&
+                !GameStyle.Neutral.DrawArt(g, "logo.png", new RectangleF(0, 0, 160, 80), 1),
+                "Wind Waker ornaments and logos cannot draw on neutral/future-game chrome");
         var icons = resources.Where(n => n.StartsWith(prefix + "icons.")).Select(n => n.Substring(prefix.Length + 6, n.Length - prefix.Length - 10)).ToList();
         Check(icons.Count == 28 && icons.All(id => rules.Any(a => a.Id == id)), "The 28 owner icons are embedded under existing achievement IDs");
         Check(new[] { "frame-bronze.png", "frame-silver.png", "frame-gold.png", "frame-platinum.png", "sky.png" }.All(n => resources.Contains(prefix + n)),
@@ -303,6 +361,7 @@ class UiTests
                 // This executable is built in an isolated test directory. It never attaches to Cemu.
                 Set(form, "soundOn", false); Set(form, "ambientOn", false);
                 form.Show(); form.Location = new Point(-20000, -20000); Settle();
+                PartialPaintChecks(form, output);
                 CloudChecks(form, output);
                 AutomaticWaitingChecks(form, output);
                 var curated = (List<Achievement>)Get(form, "rules");

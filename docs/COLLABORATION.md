@@ -43,7 +43,8 @@ loader and evaluator support. Preserve existing IDs and revision unless a
 deliberate progress migration is included.
 
 After integrating, run build/tests and record the actual manual checks. Generate
-a new archive with `package.ps1`; do not reuse an old manifest for changed code.
+an archive only when explicitly requested; otherwise keep the root EXE current
+and commit source/assets/docs. Never reuse an old manifest for changed code.
 
 ## Moving the work
 
@@ -53,6 +54,6 @@ Cloud Linux agents should return source patches and leave Windows/live-game
 verification pending. The package does not contain a remote bridge to the user's
 PC, and none is needed for code-only contributions.
 
-For your own machine migration, copy `data/progress/` separately after closing
+For your own machine migration, copy `%LOCALAPPDATA%\WiiUAchievements\progress/` separately after closing
 the app and keep the same profile name. Avoid sharing that folder with other AIs
 unless you specifically want them to inspect personal achievement history.

@@ -17,16 +17,13 @@ chronological groups and `MEMORY-MAP.md` for source-derived mapping hypotheses.
 
 The ten original rules plus wallets of 2500/5000 rupees and heart capacities of
 5/8/12/18 hearts. These six additions reuse only the existing six-byte header.
-Every rule still requires three below-threshold samples, then three matching
-samples, and persists through the existing atomic award path. High values on
-connection do not grant retrospective awards. Real-game evidence remains limited
-to the recorded early rupee test for these thresholds; the new high thresholds
-are tested synthetically. The tunic additionally uses an observed event bit,
-decoded into boolean `hero_clothes`, with a threshold of one. Its stable absent
-baseline and acquisition use the same confirmation/persistence path. Connect
-before receiving it; loading an already-clothed save does not unlock it.
-Manual pause/disconnect is still required when loading saves. See the current
-evidence in `MEMORY-MAP.md` and `VALIDATION.md`.
+Production uses `IncludeExistingSave`: after the 750 ms ready-context gate,
+three coherent confirmations can recognize conditions already present in a
+loaded save. The legacy event-only mode remains for demo/regression callers.
+The tunic uses the live-observed `hero_clothes` bit; the other experimental
+mappings retain their stated evidence limits. Supported loading flows suspend
+and resume automatically. See `PROGRESS-RECOVERY.md`, `AUTOMATIC-LOADS.md` and
+`VALIDATION.md`; no new full-playthrough certification is implied.
 
 ## What is prepared, with detection still pending
 

@@ -13,8 +13,8 @@ namespace WiiUAchievements
 {
     public enum Weight { Regular, Bold, Heavy }
 
-    // Palette and vector artwork inspired by the light Wii U system menus. Every shape is
-    // drawn in code: no Nintendo image, sound or font file is used. Text uses Nunito (SIL OFL 1.1).
+    // Original palette/vector artwork for the shared chrome; owner-supplied branding and
+    // game art are loaded separately by BrandArt/GameStyle. Text uses Nunito (SIL OFL 1.1).
     public static class Theme
     {
         public static readonly Color Ink = Color.FromArgb(52, 58, 64), Muted = Color.FromArgb(124, 135, 144),

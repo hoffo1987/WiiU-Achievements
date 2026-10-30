@@ -147,7 +147,8 @@ reads live-checked stage/request/player signals before and after save bytes.
 `GameplayGate` blocks title/file-select/loading/unknown snapshots and requires
 750 ms of coherent context. Normal observed in-world scene requests can preserve
 arming (not confirmation streaks); menu/unknown/gaps cancel continuity. A new
-segment cannot award an already-satisfied save. Maximum-heart/permanent rollback
+segment must pass the ready-context gate before production can recognize
+already-satisfied conditions (`IncludeExistingSave`). Maximum-heart/permanent rollback
 remains a separate defensive reset. `MainForm` displays automatic waiting without
 stopping the sampling intent. A one-second watcher reopens only the same supported
 executable/profile after loss; explicit disconnect invalidates pending attach
@@ -224,3 +225,11 @@ game must add its required data validation and rules with its adapter.
 `tests/UiTests.cs` covers catalog navigation, unavailable cards, recording
 pause/resume, settings and minimum-size layout. The session-log parser still
 lacks dedicated automated coverage; engine/UI tests do not prove live Cemu behavior.
+
+## Current presentation assets
+
+`BrandArt.cs` owns shared project branding; `GameStyle.Assets.cs` fits game
+images proportionally and builds cached simple borders from uniform corners
+and repeated edges. Status values occupy a separate banner row. These layers
+do not feed engine or persistence state. `tools/render-docs.ps1` regenerates all
+public screenshots with isolated synthetic data; see `UI.md`.
