@@ -372,6 +372,16 @@ namespace WiiUAchievements
         public void DecorateBackdrop(Graphics g, Size size, float scale)
         {
             if (!Themed) return;
+            // Open turquoise sea rising behind the lower half of the page, with faint swell lines.
+            float horizon = size.Height * 0.5f;
+            using (var b = new LinearGradientBrush(new RectangleF(0, horizon - 1, size.Width, size.Height - horizon + 2), Color.FromArgb(0, 40, 186, 200), Color.FromArgb(58, 20, 160, 190), 90f))
+                g.FillRectangle(b, 0, horizon, size.Width, size.Height - horizon);
+            using (var pen = new Pen(Color.FromArgb(26, 255, 255, 255), 1.6f * scale) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                for (int i = 0; i < 9; i++)
+                {
+                    float y = horizon + (size.Height - horizon) * (0.18f + i * 0.09f), x = (i * 0.37f % 1) * size.Width * 0.8f;
+                    g.DrawLine(pen, x, y, x + size.Width * (0.12f + i % 3 * 0.05f), y);
+                }
             // Wind sits in open sky/gaps, at its natural aspect ratio; the logo zones stay clear.
             DrawArt(g, "ui/wind-0.png", new RectangleF(size.Width * 0.08f, size.Height * 0.4f, 180 * scale, 80 * scale), 0.16f);
             DrawArt(g, "ui/wind-2.png", new RectangleF(size.Width * 0.35f, size.Height * 0.65f, 230 * scale, 90 * scale), 0.14f);

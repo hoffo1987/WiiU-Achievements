@@ -26,6 +26,22 @@ class UiTests
     {
         for (int i = 0; i < 55; i++) { Application.DoEvents(); Thread.Sleep(10); }
     }
+    // Account work continues in the background (login, then an automatic sync): wait until the
+    // form has been idle for several consecutive polls before asserting on its controls.
+    static void WaitCloudIdle(MainForm form)
+    {
+        int quiet = 0;
+        for (int i = 0; i < 300 && quiet < 8; i++)
+        {
+            Application.DoEvents(); Thread.Sleep(20);
+            quiet = (bool)Get(form, "cloudBusy") ? 0 : quiet + 1;
+        }
+    }
+    static string CloudState(MainForm form)
+    {
+        return " (busy=" + Get(form, "cloudBusy") + ", signed=" + ((CloudSync)Get(form, "cloud")).IsSignedIn + ", login=" + Get(Widget(form, "cloud-login"), "Enabled") +
+            ", logout=" + Get(Widget(form, "cloud-logout"), "Enabled") + ", readOnly=" + ((TextBox)Get(form, "cloudEmail")).ReadOnly + ", message=" + Get(form, "cloudMessage") + ")";
+    }
     static object Widget(MainForm form, string id) { Call(form, "Arrange"); return ((IDictionary)Get(form, "widgets"))[id]; }
     static void Click(MainForm form, string id)
     {
@@ -53,10 +69,12 @@ class UiTests
     static long FooterPixels(MainForm form, Bitmap bitmap)
     {
         var tile = (RectangleF)Get(Widget(form, "tile:wallet-10"), "Bounds");
+        var wallet = ((List<Achievement>)Get(form, "rules")).Single(a => a.Id == "wallet-10");
+        var footer = (RectangleF)Call(form, "FooterRect", tile, wallet);
         float scale = (float)Get(form, "scale");
         long sum = 0;
-        for (int y = (int)((tile.Y + 79) * scale); y < (int)((tile.Y + 97) * scale); y++)
-            for (int x = (int)((tile.X + 102) * scale); x < (int)((tile.Right - 16) * scale); x++)
+        for (int y = (int)(footer.Y * scale); y < (int)(footer.Bottom * scale); y++)
+            for (int x = (int)(footer.X * scale); x < (int)(footer.Right * scale); x++)
                 sum += bitmap.GetPixel(x, y).ToArgb();
         return sum;
     }
@@ -128,6 +146,178 @@ class UiTests
         }
         Set(form, "scroll", 0f); Set(form, "scrollTarget", 0f);
     }
+    static void ToolbarChecks(MainForm form, string output)
+    {
+        var rules = (List<Achievement>)Get(form, "rules");
+        var search = (TextBox)Get(form, "search");
+        int unlockedBefore = (int)form.GetType().GetProperty("UnlockedCount", Private).GetValue(form, null);
+        // Search: case and accent insensitive, across title/description/category/chapter/rarity.
+        search.Text = "FORTEZZA"; Settle();
+        var found = (List<Achievement>)Call(form, "Filtered");
+        Check(found.Count > 0 && found.Count < rules.Count && found.All(a => (a.Title + a.Description + a.Category + a.Chapter).ToLowerInvariant().Contains("fortezza")),
+            "Search filters case-insensitively by name, description, category and chapter");
+        Call(form, "Arrange");
+        Check((string)Get(Widget(form, "tab0"), "Glyph") == found.Count.ToString(), "Status tab counts follow the search");
+        search.Text = "eredita"; Settle();
+        Check(((List<Achievement>)Call(form, "Filtered")).Any(a => a.Id == "story-zelda"), "Search ignores accents (eredita finds the Zelda objective)");
+        search.Text = "sword"; Settle();
+        Check(((List<Achievement>)Call(form, "Filtered")).Any(a => a.Id == "story-hero-sword"), "Search knows English item names (sword finds the Hero's Sword)");
+        search.Text = "boss"; Settle();
+        var bosses = ((List<Achievement>)Call(form, "Filtered")).Select(a => a.Id).ToList();
+        Check(new[] { "story-din-pearl", "story-farore-pearl", "story-gohdan", "story-helmaroc", "story-jalhalla", "story-molgera", "story-puppet-ganon", "story-ganondorf" }.All(bosses.Contains),
+            "Search finds every boss objective by keyword (" + bosses.Count + " results)");
+        search.Text = "zattera volante"; Settle(); Call(form, "Arrange");
+        Check(((List<Achievement>)Call(form, "Filtered")).Count == 0 && (bool)Get(Widget(form, "empty-reset"), "Visible"),
+            "A search without results shows the empty state with a reset action");
+        form.SavePreview(Path.Combine(output, "search-empty.png"));
+        Click(form, "empty-reset");
+        Check(search.TextLength == 0 && ((List<Achievement>)Call(form, "Filtered")).Count == rules.Count, "Empty-state reset restores the full catalog");
+        // Ordering: presentation only.
+        Set(form, "sortMode", 1);
+        var byRarity = (List<Achievement>)Call(form, "Filtered");
+        Check(byRarity.Zip(byRarity.Skip(1), (x, y) => (int)x.Rarity >= (int)y.Rarity).All(ok => ok), "Rarity order puts rarer medals first");
+        Set(form, "sortMode", 3);
+        var byName = (List<Achievement>)Call(form, "Filtered");
+        Check(byName.Count == rules.Count && String.Compare(byName.First().Title, byName.Last().Title, StringComparison.CurrentCultureIgnoreCase) < 0, "Name order is alphabetical and keeps every objective");
+        Key(form, Keys.S);
+        Check((int)Get(form, "sortMode") == 4, "S cycles the sort order");
+        Call(form, "Arrange");
+        Check((bool)Get(Widget(form, "reset-filters"), "Visible"), "A non-default order or filter offers Azzera");
+        Click(form, "reset-filters");
+        Check((int)Get(form, "sortMode") == 0 && (int)Get(form, "categoryFilter") == 0 && ((List<Achievement>)Call(form, "Filtered")).First().Id == "story-heros-clothes",
+            "Azzera restores playthrough order and all categories");
+        Check((int)form.GetType().GetProperty("UnlockedCount", Private).GetValue(form, null) == unlockedBefore, "Search, menus and ordering never change unlock state");
+        // Rarity, detection and image filters share one grouped menu and combine with the rest.
+        Call(form, "OpenMenu", "more"); Settle(); Call(form, "Arrange");
+        var entries = ((IEnumerable)Get(form, "visible")).Cast<object>().Where(v => ((string)Get(v, "Id")).StartsWith("menu:")).ToList();
+        Check(entries.Count == 12 && entries.Any(v => (string)Get(v, "Name") == "Immagine: Senza icona"), "Altri filtri lists rarity, detection and image choices in labelled groups");
+        form.SavePreview(Path.Combine(output, "menu-more.png"));
+        Click(form, (string)Get(entries.Single(v => (string)Get(v, "Name") == "Rarità: Oro"), "Id")); Settle();
+        var gold = (List<Achievement>)Call(form, "Filtered");
+        Check(gold.Count == 10 && gold.All(a => a.Rarity == AchievementRarity.Gold), "The rarity filter keeps the ten gold objectives");
+        Set(form, "detectionFilter", 2);
+        Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Rarity == AchievementRarity.Gold && a.Experimental && !a.IsPlanned), "Rarity and detection filters combine");
+        Key(form, Keys.R);
+        Check((int)Get(form, "rarityFilter") == 4, "R cycles the rarity filter");
+        Call(form, "ResetFilters"); Set(form, "iconFilter", 2);
+        Check(((List<Achievement>)Call(form, "Filtered")).Count == 0, "Immagine: Senza icona is empty now that all 110 objectives have personalized medals");
+        Set(form, "iconFilter", 1);
+        Check(((List<Achievement>)Call(form, "Filtered")).Count == rules.Count, "Immagine: Personalizzate covers the whole catalog");
+        Call(form, "ResetFilters"); Settle();
+        // Menus by keyboard: focus lands on the current entry; Escape closes and returns to the button.
+        Set(form, "focusVisible", true); Set(form, "focused", Widget(form, "chapter"));
+        Call(form, "OpenMenu", "chapter"); Settle();
+        var focusedItem = Get(form, "focused");
+        Check(focusedItem != null && (string)Get(focusedItem, "Id") == "menu:0" && (bool)Get(focusedItem, "Checked"), "Keyboard-opened menu focuses its selected entry");
+        Key(form, Keys.Down); Key(form, Keys.Enter); Settle();
+        Check((int)Get(form, "chapterFilter") == 1 && (float)Get(form, "menuTarget") == 0, "Arrow keys and Enter choose a menu entry");
+        Call(form, "OpenMenu", "category"); Settle(); Key(form, Keys.Escape); Settle();
+        Check((float)Get(form, "menuTarget") == 0 && Get(form, "menu") == null && (string)Get(Get(form, "focused"), "Id") == "category", "Escape closes a menu and returns focus to its button");
+        Call(form, "OpenMenu", "sort"); Settle();
+        var outside = new MouseEventArgs(MouseButtons.Left, 1, 4, (int)(((RectangleF)Get(form, "gridRect")).Bottom * (float)Get(form, "scale")) - 4, 0);
+        Call(form, "OnMouseDown", outside); Call(form, "OnMouseUp", outside); Settle();
+        Check((float)Get(form, "menuTarget") == 0, "Clicking outside a menu closes it without acting");
+        Set(form, "focusVisible", false); Set(form, "focused", null);
+        Call(form, "ResetFilters"); Settle();
+        int children = form.AccessibilityObject.GetChildCount(); bool dropdown = false;
+        for (int i = 0; i < children; i++)
+        {
+            var item = form.AccessibilityObject.GetChild(i);
+            if (item.Role == AccessibleRole.ButtonDropDown && item.Name.StartsWith("Categoria")) dropdown = item.Name.Contains("Tutte");
+        }
+        Check(dropdown, "Menus reach accessibility clients as drop-down buttons with their value");
+    }
+    static void DetailChecks(MainForm form, string output)
+    {
+        var list = (List<Achievement>)Call(form, "Filtered");
+        Click(form, "tile:" + list[0].Id); Settle();
+        Check(!(bool)Get(Widget(form, "detail-prev"), "Enabled") && (bool)Get(Widget(form, "detail-next"), "Enabled"), "Detail browsing is bounded at the first objective");
+        Key(form, Keys.Right);
+        Check(((Achievement)Get(form, "detail")).Id == list[1].Id, "Right arrow shows the next objective in the current order");
+        Click(form, "detail-prev");
+        Check(((Achievement)Get(form, "detail")).Id == list[0].Id, "The side arrow returns to the previous objective");
+        var planned = list.First(a => a.IsPlanned);
+        Set(form, "detail", planned); Settle();
+        form.SavePreview(Path.Combine(output, "detail-planned.png"));
+        Key(form, Keys.Escape); Settle();
+        Check((float)Get(form, "dialogTarget") == 0, "Escape closes the detail card");
+        var states = list.Select(a => Call(form, "StateOf", a, null).ToString()).Distinct().ToList();
+        Check(states.Contains("Locked") && states.Contains("Experimental") && states.Contains("Planned"), "Locked, experimental and planned objectives map to distinct card states");
+        var stateType = typeof(MainForm).GetNestedType("CardState", BindingFlags.NonPublic);
+        var labels = new[] { "Unlocked", "Locked", "Experimental", "Planned" }.Select(n => (string)typeof(MainForm).GetMethod("StateLabel", BindingFlags.Static | BindingFlags.NonPublic)
+            .Invoke(null, new[] { Enum.Parse(stateType, n) })).ToList();
+        Check(labels.Distinct().Count() == 4 && labels.All(l => l.Length > 4), "Every state has its own words (and icon), not only a colour");
+    }
+    static void LayoutChecks(MainForm form, string output)
+    {
+        Size original = form.ClientSize;
+        float scale = (float)Get(form, "scale");
+        foreach (var size in new[] { new Size(900, 680), new Size(1120, 800), new Size(1920, 1080), new Size(2560, 1080) })
+        {
+            form.ClientSize = new Size((int)(size.Width * scale), (int)(size.Height * scale)); Settle();
+            if (form.ClientSize.Width < (int)(size.Width * scale) - 2) { Console.WriteLine("INFO window cannot reach " + size + " on this desktop"); continue; }
+            Call(form, "Arrange");
+            var ids = new[] { "tab0", "tab1", "tab2", "tab3", "category", "chapter", "sort", "search" };
+            var boxes = ids.Select(id => (RectangleF)Get(Widget(form, id), "Bounds")).ToArray();
+            var toolbar = (RectangleF)Get(form, "toolbarRect");
+            bool inside = boxes.All(b => toolbar.Contains(b) && b.Right <= size.Width - 20 + 0.5f);
+            bool separate = !boxes.Where((b, i) => boxes.Skip(i + 1).Any(o => RectangleF.Intersect(b, o).Width > 0.5f && RectangleF.Intersect(b, o).Height > 0.5f)).Any();
+            Check(inside && separate, "Toolbar controls fit without overlap at " + size.Width + "x" + size.Height);
+            var grid = (RectangleF)Get(form, "gridRect");
+            var banner = (RectangleF)Get(form, "bannerRect");
+            Check(banner.Bottom < toolbar.Y && toolbar.Bottom < grid.Y && grid.Height >= 150, "Banner, toolbar and grid stack without overlap at " + size.Width + "x" + size.Height + " (grid " + grid.Height + ")");
+            var tiles = ((IEnumerable)Get(form, "visible")).Cast<object>().Where(v => Get(v, "Achievement") != null).Select(v => (RectangleF)Get(v, "Bounds")).Take(30).ToArray();
+            Check(tiles.All(t => t.Width >= 340 && t.Right <= size.Width - 8), "Cards keep a readable width at " + size.Width + "x" + size.Height);
+            form.SavePreview(Path.Combine(output, "layout-" + size.Width + ".png"));
+        }
+        form.ClientSize = original; Settle();
+    }
+    static void TextFitChecks(MainForm form)
+    {
+        // Every revised title and description fits whole on the narrowest card and in the detail card.
+        var rules = (List<Achievement>)Get(form, "rules");
+        var misfits = rules.Where(a => !(bool)Call(form, "CardTextFits", a, 340f)).Select(a => a.Id).ToList();
+        Check(misfits.Count == 0, "All 110 titles and descriptions fit the narrowest card (" + String.Join(", ", misfits) + ")");
+        float titleW = (float)typeof(MainForm).GetField("DetailTitleW", BindingFlags.Static | BindingFlags.NonPublic).GetRawConstantValue();
+        float textW = (float)typeof(MainForm).GetField("DetailTextW", BindingFlags.Static | BindingFlags.NonPublic).GetRawConstantValue();
+        using (var bitmap = new Bitmap(1, 1))
+        using (var g = Graphics.FromImage(bitmap))
+        {
+            var detailMisfits = rules.Where(a => Theme.Measure(g, a.Title, (Font)Call(form, "DetailTitleFont", a)).Width > titleW ||
+                Theme.Measure(g, a.Description, Theme.Font(15.5f, Weight.Regular), textW).Height > 70 ||
+                Theme.Measure(g, a.IsPlanned ? a.Requirement : (string)Call(form, "DetailStatus", a), Theme.Font(13.5f, Weight.Regular), textW).Height > 78).Select(a => a.Id).ToList();
+            Check(detailMisfits.Count == 0, "All 110 titles, descriptions and requirements fit the detail card (" + String.Join(", ", detailMisfits) + ")");
+        }
+    }
+    static void MotionChecks(MainForm form, string output)
+    {
+        bool before = Motion.Reduced;
+        Motion.Reduced = true;
+        Call(form, "OpenSheet"); Settle();
+        Check((float)Get(form, "sheet") == 1 && ((RectangleF)Get(form, "sheetRect")).Right <= form.ClientSize.Width / (float)Get(form, "scale") + 0.5f, "Reduced motion opens settings without a slide");
+        string settings = Path.Combine(output, "app-data", "settings.xml");
+        Click(form, "motion");
+        Check(!Motion.Reduced && File.ReadAllText(settings).Contains("<motion>full</motion>"), "The movement toggle is saved with the other UI settings");
+        Click(form, "motion");
+        Check(Motion.Reduced && File.ReadAllText(settings).Contains("<motion>reduced</motion>"), "Reduced motion can be chosen explicitly");
+        Call(form, "CloseSheet"); Settle();
+        var rules = (List<Achievement>)Get(form, "rules");
+        var gold = rules.Single(a => a.Id == "hearts-20");
+        var art = Art.For(gold, rules, GameCatalog.WindWakerId);
+        using (var early = ToastForm.Render(gold, art, "OBIETTIVO SBLOCCATO", ToastForm.TurnStart - 0.05f, 1))
+        using (var late = ToastForm.Render(gold, art, "OBIETTIVO SBLOCCATO", 1.6f, 1))
+        {
+            Func<Bitmap, double> medal = b => { using (var crop = b.Clone(new Rectangle(34 + 18, 34 + 14, 96, 96), b.PixelFormat)) return Saturation(crop); };
+            Check(medal(early) < medal(late) * 0.5, "With reduced motion the popup medal still turns from grey to colour (without flipping)");
+            late.Save(Path.Combine(output, "toast-reduced.png"));
+        }
+        Set(form, "introStart", (float)((Stopwatch)Get(form, "clock")).Elapsed.TotalSeconds);
+        Call(form, "SetFilter", 2); Call(form, "SetFilter", 0);
+        Check((float)Get(form, "introStart") < 0, "Reduced motion skips the staggered card entrance");
+        Motion.Reduced = before;
+        Set(form, "motionChoice", null); Call(form, "TrySaveSettings");
+        Check(!File.ReadAllText(settings).Contains("<motion>"), "Without an explicit choice the movement setting follows Windows");
+    }
     static void PartialPaintChecks(MainForm form, string output)
     {
         Size originalSize = form.ClientSize;
@@ -147,7 +337,7 @@ class UiTests
                     // These strips start below the old DrawTabs guard. Repainting them used
                     // to erase a horizontal band through the buttons and the adjacent help.
                     var regions = new List<RectangleF>();
-                    foreach (string id in new[] { "category", "chapter" })
+                    foreach (string id in new[] { "category", "chapter", "sort", "search", "tab2" })
                     {
                         var r = (RectangleF)Get(Widget(form, id), "Bounds");
                         regions.Add(new RectangleF(r.X + 18, r.Y + 10, r.Width - 24, 14));
@@ -168,7 +358,7 @@ class UiTests
                                 var a = actual.GetPixel(x, y); var b = expected.GetPixel(x, y);
                                 if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 6) changed++;
                             }
-                    Check(changed == 0, "Partial filter/help repaints match a complete frame at " + dpi + " scale (different pixels: " + changed + ")");
+                    Check(changed == 0, "Partial toolbar repaints (tabs, menus, search, legend) match a complete frame at " + dpi + " scale (different pixels: " + changed + ")");
                     if (dpi == 1) actual.Save(Path.Combine(output, "partial-filters.png"));
                     if (dpi == 2) actual.Save(Path.Combine(output, "main-200.png"));
                 }
@@ -206,13 +396,13 @@ class UiTests
                 !GameStyle.Neutral.DrawArt(g, "logo.png", new RectangleF(0, 0, 160, 80), 1),
                 "Wind Waker ornaments and logos cannot draw on neutral/future-game chrome");
         var icons = resources.Where(n => n.StartsWith(prefix + "icons.")).Select(n => n.Substring(prefix.Length + 6, n.Length - prefix.Length - 10)).ToList();
-        Check(icons.Count == 28 && icons.All(id => rules.Any(a => a.Id == id)), "The 28 owner icons are embedded under existing achievement IDs");
+        Check(icons.Count == 110 && icons.All(id => rules.Any(a => a.Id == id)), "All 110 personalized icons are embedded under existing achievement IDs");
         Check(new[] { "frame-bronze.png", "frame-silver.png", "frame-gold.png", "frame-platinum.png", "sky.png" }.All(n => resources.Contains(prefix + n)),
             "Every rarity frame and the shared sky are embedded");
         var arts = rules.ToDictionary(a => a.Id, a => Art.For(a, rules, GameCatalog.WindWakerId));
         Check(rules.All(a => arts[a.Id].HasIcon || a.Field == "rupees" || a.Field == "max_health" || Glyphs.HasExplicit(GameCatalog.WindWakerId, a.Id)),
             "Every Wind Waker objective has its own icon or an explicit glyph");
-        Check(icons.All(id => arts[id].HasIcon) && arts.Values.Count(a => a.HasIcon) == 28, "Owner icons replace exactly the matching objectives");
+        Check(icons.All(id => arts[id].HasIcon) && arts.Values.Count(a => a.HasIcon) == 110, "Personalized icons cover every matching objective");
         Check(rules.All(a => arts[a.Id].Tier == (Tier)a.Rarity), "Medal frame rarity follows the curated rarity");
         foreach (var id in new[] { "wallet-10", "story-zelda", "story-molgera" })
             using (var color = Medals.Render(arts[id], 96, false))
@@ -325,7 +515,9 @@ class UiTests
         Call(form, "CloudLogin");
         try
         {
-            Check(entered.WaitOne(2000) && (bool)Get(form, "cloudBusy") && password.TextLength == 0, "Account request runs in background and clears the password immediately");
+            bool reached = entered.WaitOne(2000);
+            Check(reached && (bool)Get(form, "cloudBusy") && password.TextLength == 0, "Account request runs in background and clears the password immediately (request=" + reached +
+                ", busy=" + Get(form, "cloudBusy") + ", password=" + password.TextLength + ", message=" + Get(form, "cloudMessage") + ")");
             int ticks = 0;
             using (var heartbeat = new System.Windows.Forms.Timer { Interval = 25 })
             {
@@ -334,16 +526,18 @@ class UiTests
             }
         }
         finally { gate.Set(); }
-        for (int i = 0; i < 100 && (bool)Get(form, "cloudBusy"); i++) { Application.DoEvents(); Thread.Sleep(20); }
-        Check(!(bool)Get(form, "cloudBusy") && ((CloudSync)Get(form, "cloud")).IsSignedIn, "Completed account request resumes UI with authenticated status");
-        Check(!(bool)Get(Widget(form, "cloud-login"), "Enabled") && !(bool)Get(Widget(form, "cloud-signup"), "Enabled") && (bool)Get(Widget(form, "cloud-logout"), "Enabled") && ((TextBox)Get(form, "cloudEmail")).ReadOnly, "Connected account disables login/signup and edits while retaining logout");
+        WaitCloudIdle(form);
+        Check(!(bool)Get(form, "cloudBusy") && ((CloudSync)Get(form, "cloud")).IsSignedIn, "Completed account request resumes UI with authenticated status" + CloudState(form));
+        Check(!(bool)Get(Widget(form, "cloud-login"), "Enabled") && !(bool)Get(Widget(form, "cloud-signup"), "Enabled") && (bool)Get(Widget(form, "cloud-logout"), "Enabled") && ((TextBox)Get(form, "cloudEmail")).ReadOnly,
+            "Connected account disables login/signup and edits while retaining logout" + CloudState(form));
         string connectedMessage = (string)Get(form, "cloudMessage");
         Call(form, "CloudLogin");
         Check((string)Get(form, "cloudMessage") == connectedMessage && ((CloudSync)Get(form, "cloud")).IsSignedIn, "Repeated login cannot replace an already connected session");
         gate.Dispose(); entered.Dispose();
+        WaitCloudIdle(form);
         Call(form, "CloudLogout");
-        for (int i = 0; i < 100 && (bool)Get(form, "cloudBusy"); i++) { Application.DoEvents(); Thread.Sleep(20); }
-        Check((bool)Get(Widget(form, "cloud-login"), "Enabled") && !(bool)Get(Widget(form, "cloud-logout"), "Enabled") && !((TextBox)Get(form, "cloudEmail")).ReadOnly, "Logout restores editable login controls");
+        WaitCloudIdle(form);
+        Check((bool)Get(Widget(form, "cloud-login"), "Enabled") && !(bool)Get(Widget(form, "cloud-logout"), "Enabled") && !((TextBox)Get(form, "cloudEmail")).ReadOnly, "Logout restores editable login controls" + CloudState(form));
         Call(form, "CloseSheet"); Settle(); Call(form, "CloseSheet"); Settle();
         Check(password.TextLength == 0 && !password.Visible, "Leaving account settings clears and hides password");
         form.ClientSize = new Size((int)(1120 * scale), (int)(800 * scale));
@@ -385,12 +579,20 @@ class UiTests
                 Check(((Achievement)Get(form, "detail")).Id == pendingId, "Pending objectives have an inspectable detail card");
                 form.SavePreview(Path.Combine(output, "pending-detail.png"));
                 Key(form, Keys.Escape); Click(form, "category");
-                Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Category == "Storia"), "Category button filters the pending catalog");
+                Check((string)Get(form, "menu") == "category" && (int)form.GetType().GetProperty("ActiveLayer", Private).GetValue(form, null) == 3,
+                    "The category button opens its menu as a separate input layer");
+                Call(form, "Arrange");
+                Check(((IEnumerable)Get(form, "visible")).Cast<object>().Count(v => ((string)Get(v, "Id")).StartsWith("menu:")) == AchievementSet.Categories.Count + 1,
+                    "The category menu lists every category plus Tutte");
+                form.SavePreview(Path.Combine(output, "menu.png"));
+                Click(form, "menu:1"); Settle();
+                Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Category == "Storia") && (float)Get(form, "menuTarget") == 0,
+                    "Choosing a menu entry filters the pending catalog and closes the menu");
                 for (int i = 0; i < AchievementSet.Categories.Count; i++) Key(form, Keys.C);
                 Check((int)Get(form, "categoryFilter") == 0, "C cycles all categories and returns to the full catalog");
                 Click(form, "tab2");
                 Check(((List<Achievement>)Call(form, "Filtered")).All(a => !a.IsPlanned), "Unlockable filter excludes unvalidated objectives");
-                Click(form, "category");
+                Click(form, "category"); Click(form, "menu:1");
                 Check(((List<Achievement>)Call(form, "Filtered")).Any(a => a.Id == "story-heros-clothes") &&
                     ((List<Achievement>)Call(form, "Filtered")).Any(a => a.Id == "story-telescope" && a.Experimental),
                     "Story category contains both the confirmed tunic and executable experimental telescope");
@@ -398,11 +600,16 @@ class UiTests
                 Set(form, "categoryFilter", 0);
                 Click(form, "tab0");
                 Check(((List<Achievement>)Call(form, "Filtered")).First().Id == "story-heros-clothes", "Default ordering begins with the start of the playthrough");
-                Click(form, "chapter");
-                Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Chapter == "01 · Outset"), "Chapter filter selects the initial playthrough group");
+                Click(form, "chapter"); Click(form, "menu:1");
+                Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Chapter == "01 · Isola Primula"), "Chapter filter selects the initial playthrough group");
                 Key(form, Keys.F);
                 Check(((List<Achievement>)Call(form, "Filtered")).All(a => a.Chapter == "02 · Pirati"), "F advances to the next chronological group");
                 Set(form, "chapterFilter", 0);
+                ToolbarChecks(form, output);
+                DetailChecks(form, output);
+                LayoutChecks(form, output);
+                TextFitChecks(form);
+                MotionChecks(form, output);
                 ScrollChecks(form, output);
                 ArtChecks(form, output);
                 Click(form, "games");

@@ -15,7 +15,7 @@ namespace WiiUAchievements
 
     // Original palette/vector artwork for the shared chrome; owner-supplied branding and
     // game art are loaded separately by BrandArt/GameStyle. Text uses Nunito (SIL OFL 1.1).
-    public static class Theme
+    public static partial class Theme
     {
         public static readonly Color Ink = Color.FromArgb(52, 58, 64), Muted = Color.FromArgb(124, 135, 144),
             Faint = Color.FromArgb(184, 193, 200), Line = Color.FromArgb(212, 219, 225),
@@ -455,25 +455,31 @@ namespace WiiUAchievements
                 default: return Color.FromArgb(255, 176, 112);
             }
         }
-        // Small metallic ribbon with the rarity name, used under medals and in details.
+        // Dark lettering on a light metal face stays legible for locked medals too.
+        public static void TierLabelColors(Tier tier, out Color face, out Color ink)
+        {
+            switch (tier)
+            {
+                case Tier.Platinum: face = Color.FromArgb(222, 242, 255); ink = Color.FromArgb(28, 62, 88); break;
+                case Tier.Gold: face = Color.FromArgb(250, 221, 128); ink = Color.FromArgb(79, 48, 5); break;
+                case Tier.Silver: face = Color.FromArgb(230, 237, 244); ink = Color.FromArgb(37, 55, 72); break;
+                default: face = Color.FromArgb(246, 214, 180); ink = Color.FromArgb(84, 43, 17); break;
+            }
+        }
+        // A quiet metallic edge leaves a uniform, high-contrast text surface.
         public static void TierRibbon(Graphics g, RectangleF r, Tier tier, string text, float alpha)
         {
             if (alpha <= 0.01f) return;
             Color light, dark;
-            TierColors(tier, out light, out dark);
+            TierLabelColors(tier, out light, out dark);
             float radius = r.Height / 2;
             using (var path = Round(r, radius))
             {
-                var blend = new ColorBlend { Positions = new[] { 0f, 0.45f, 0.55f, 1f },
-                    Colors = new[] { Alpha(Light(light, 0.25f), alpha), Alpha(light, alpha), Alpha(Mix(light, dark, 0.45f), alpha), Alpha(dark, alpha) } };
-                using (var b = new LinearGradientBrush(Inflate(r, 0, 1), light, dark, 90f) { InterpolationColors = blend }) g.FillPath(b, path);
-                using (var pen = new Pen(Alpha(Dark(dark, 0.3f), 0.7f * alpha), 1f)) g.DrawPath(pen, path);
+                Fill(g, path, Alpha(light, alpha));
+                using (var pen = new Pen(Alpha(Mix(light, dark, 0.5f), alpha), 1f)) g.DrawPath(pen, path);
             }
-            using (var gloss = Round(new RectangleF(r.X + 2, r.Y + 1, r.Width - 4, r.Height * 0.42f), radius - 1)) Fill(g, gloss, Color.FromArgb((int)(90 * alpha), 255, 255, 255));
-            Color ink = tier == Tier.Silver || tier == Tier.Platinum ? Dark(dark, 0.45f) : Color.White;
             var font = Font(r.Height * 0.62f, Weight.Heavy);
-            if (ink == Color.White) Text(g, text, font, Color.FromArgb((int)(110 * alpha), Dark(dark, 0.5f)), new RectangleF(r.X, r.Y + 0.8f, r.Width, r.Height), StringAlignment.Center, StringAlignment.Center, false);
-            Text(g, text, font, Alpha(ink, alpha), r, StringAlignment.Center, StringAlignment.Center, false);
+            Text(g, text, font, Alpha(dark, alpha), r, StringAlignment.Center, StringAlignment.Center, false);
         }
 
         // Game medal (owner icon or glyph in the rarity frame); falls back to the vector medallion.

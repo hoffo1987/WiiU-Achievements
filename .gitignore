@@ -3,6 +3,7 @@ data/
 *.tmp
 *.bak
 test-results/
+output/achievement-icons/
 build-check/
 WiiUAchievements.exe
 package-manifest.json
@@ -19,3 +20,4 @@ ui-debug.log
 
 # Packaged releases are kept locally in release/ (the tracked alpha 0.2 handoff stays).
 release/WiiUAchievements-*.zip
+__pycache__/

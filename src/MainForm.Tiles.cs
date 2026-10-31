@@ -34,7 +34,8 @@ namespace WiiUAchievements
             tileImages.Clear();
         }
 
-        void DrawTile(Graphics g, Widget w, float t)
+        // alpha < 1 only while the card fades in after a filter change.
+        void DrawTile(Graphics g, Widget w, float t, float alpha)
         {
             // Hover, keyboard focus and unlock celebrations retain the vector path.
             // The other cards reuse static pixels; a footer fed by live samples is drawn every frame.
@@ -89,12 +90,11 @@ namespace WiiUAchievements
                 {
                     g.InterpolationMode = InterpolationMode.NearestNeighbor; g.PixelOffsetMode = PixelOffsetMode.Half; g.CompositingQuality = CompositingQuality.HighSpeed;
                 }
-            g.DrawImage(entry.Bitmap, r.X - TileBleed, r.Y - TileBleed,
-                entry.Bitmap.Width / scale, entry.Bitmap.Height / scale);
+            var destination = new RectangleF(r.X - TileBleed, r.Y - TileBleed, entry.Bitmap.Width / scale, entry.Bitmap.Height / scale);
+            if (alpha < 1) Theme.DrawFaded(g, entry.Bitmap, destination, alpha);
+            else g.DrawImage(entry.Bitmap, destination.X, destination.Y, destination.Width, destination.Height);
             g.InterpolationMode = interpolation; g.PixelOffsetMode = offset; g.CompositingQuality = quality;
-            if (footer == null)
-                DrawProgress(g, a, unlock, new RectangleF(r.X + 102, r.Y + 79, r.Width - 118, 18),
-                    Theme.Font(12.5f, Weight.Bold), false);
+            if (footer == null && alpha > 0.5f) DrawProgress(g, a, unlock, FooterRect(r, a), false);
         }
         // Footers that do not depend on live samples (pending, unlocked, disconnected) are
         // part of the cached card; the key changes whenever their text would change.

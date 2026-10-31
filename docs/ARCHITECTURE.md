@@ -25,7 +25,8 @@ On connection, `MainForm.Connect`:
 
 Each tick reads a snapshot, runs the engine, persists any awards, updates the UI,
 and queues notifications. The interface is custom-drawn (`MainForm.Ui.cs`,
-`MainForm.Library.cs`, `Theme.cs`, `Banner.cs`, `Notification.cs`). Its rendering model, animation timer,
+`MainForm.Toolbar.cs`, `MainForm.Cards.cs`, `MainForm.Detail.cs`, `MainForm.Library.cs`,
+`MainForm.Tiles.cs`, `Theme.cs`, `Theme.Icons.cs`, `Motion.cs`, `Banner.cs`, `Notification.cs`). Its rendering model, animation timer,
 input map and asset policy are described in `docs/UI.md`. UI state never feeds
 back into the engine. The title fingerprint and memory base are rechecked
 from the log approximately once per second. Failures disconnect the reader and
@@ -138,6 +139,13 @@ Presentation sorts by optional `order` and combines chapter/category/status
 filters. These metadata do not impose dependencies or feed the engine. The
 sampling layer explicitly refreshes presentation when progression values change,
 including below-threshold counters whose engine phase remains the same.
+
+The toolbar in `MainForm.Toolbar.cs` additionally combines rarity, detection and
+image availability ("Altri filtri") with tokenized accent-insensitive text search
+including item aliases. It keeps an index for the selected rules list and offers
+menus and presentation-only sorting by journey/rarity/points/name/earned date.
+Changing a game resets the browsing choices.
+No query, filter or sort value is passed to the engine or persistence identity.
 
 
 ## Recording boundaries and optional cloud (2026-10-30)

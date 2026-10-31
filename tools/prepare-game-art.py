@@ -1,9 +1,10 @@
 """Prepare per-game achievement art from the owner's full-size icon PNGs.
 
-Optional developer tool (Python 3 + Pillow + NumPy + SciPy); the app never runs it.
+Optional developer tool (Python 3 + Pillow + NumPy; SciPy for frames); the app never runs it.
 The committed 256 px PNGs under assets/games/ are what build.ps1 embeds.
 
     python -I tools/prepare-game-art.py <folder with the original PNGs> <game id>
+    python -I tools/prepare-game-art.py <folder with additional PNGs> <game id> --icons-only
 
 Every supplied icon shares one frame template whose metal follows the rarity.
 The script:
@@ -21,13 +22,12 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
-from scipy import ndimage
 
 SIZE = 256
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RULE_FILES = ["achievements.xml", "achievements-story.xml", "achievements-planned.xml"]
 # The owner's file names follow the titles; this one differs by a preposition.
-ALIASES = {"uno sguardo al mare": "uno sguardo sul mare"}
+ALIASES = {"uno sguardo al mare": "uno sguardo sul mare", "artificiere del male": "artificiere del mare"}
 
 
 def key(text):
@@ -38,10 +38,13 @@ def key(text):
 def catalog():
     titles, rarity = {}, {}
     for name in RULE_FILES:
-        for node in ET.parse(os.path.join(ROOT, name)).getroot().iter("achievement"):
-            titles[key(node.get("title"))] = node.get("id")
+        for node in ET.parse(os.path.join(ROOT, name)).getroot():
+            if node.tag in ("achievement", "planned"):
+                titles[key(node.get("title"))] = node.get("id")
     for node in ET.parse(os.path.join(ROOT, "achievement-presentation.xml")).getroot().iter("entry"):
         rarity[node.get("id")] = node.get("rarity")
+        if node.get("title"):
+            titles[key(node.get("title"))] = node.get("id")
     return titles, rarity
 
 
@@ -60,7 +63,7 @@ def sky_like(rgb):
     return (g > 175) & (b > 210) & (b >= r + 8)
 
 
-def main(source, game):
+def main(source, game, icons_only=False):
     titles, rarity = catalog()
     target = os.path.join(ROOT, "assets", "games", game)
     os.makedirs(os.path.join(target, "icons"), exist_ok=True)
@@ -76,6 +79,13 @@ def main(source, game):
         shrink(image).save(os.path.join(target, "icons", rule + ".png"), optimize=True)
         groups.setdefault(rarity[rule], []).append(image)
         print("icon", rule, rarity[rule], "<-", name)
+
+    # Additional batches must not regenerate the shared frames/sky from a
+    # partial set of templates. They only replace the matched objective icons.
+    if icons_only:
+        return
+
+    from scipy import ndimage
 
     size = next(iter(groups.values()))[0].shape[0]
     centre = size // 2
@@ -133,6 +143,6 @@ def main(source, game):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] != "--icons-only"):
         sys.exit(__doc__)
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], len(sys.argv) == 4)

@@ -1,4 +1,4 @@
-# Rarità e revisione editoriale — 2026-10-29
+# Rarità e revisione editoriale — 2026-10-31
 
 La rarità è ora assegnata esplicitamente a tutti i **110 obiettivi**:
 **53 bronzo, 47 argento, 10 oro, nessun platino attuale**. Il fatto che un
@@ -48,5 +48,20 @@ punti, soglie, campi di memoria o stato sperimentale. Le rarità ammesse sono
 Il file delle 16 soglie conserva il formato leggibile dalle vecchie build.
 ID, revisione `wwhd-alpha-1`, condizioni e progressi rimangono invariati.
 Schede, dettagli, accessibilità e notifiche usano tutti la stessa rarità; le
-schede mostrano anche il nome sotto la medaglia. La build di revisione è in
-`build-check/rarity/`, separata dall'eseguibile che potrebbe essere aperto.
+schede mostrano anche il nome sotto la medaglia. L'eseguibile corrente è `WiiUAchievements.exe` nella directory principale.
+Per compilare mentre è aperto, usare una directory di verifica separata.
+
+## Controllo completo del 31 ottobre
+
+Confrontate tutte le 110 assegnazioni con requisito e immagine: nessuna rarità
+richiede una modifica. Il confronto statico delle cornici conferma tutte le
+assegnazioni. Una rupia gialla/dorata può apparire in una medaglia argento:
+il colore dell'oggetto non è il rango. Gli Octoboss, le ampolle e le statue
+complete restano argento perché raccolte più circoscritte rispetto a 44 frammenti,
+46 mappe e Galleria; Gayla con pieno potere della Spada Suprema resta oro come
+tappa conclusiva del percorso dei saggi. Sono scelte editoriali, non percentuali
+misurate di sblocco fra giocatori. Nessun punto già guadagnato viene ricalcolato.
+
+Schede, dettagli e notifiche usano ora targhette con testo scuro e fondo uniforme.
+Il contrasto delle quattro coppie di colori è fra 8,78:1 e 10,35:1 e non diminuisce
+sugli obiettivi bloccati. [Registro di ogni voce](ACHIEVEMENT-AUDIT.md).

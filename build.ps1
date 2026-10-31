@@ -25,8 +25,17 @@ if (Test-Path -LiteralPath $games) {
         '/resource:' + $_.FullName + ',WiiUAchievements.Games.' + $_.FullName.Substring($games.Length + 1).Replace('\', '.')
     })
 }
-& $compiler /nologo /langversion:5 /target:winexe /platform:x64 /optimize+ /utf8output /r:System.Xml.Linq.dll /r:System.Web.Extensions.dll /r:System.Security.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:Accessibility.dll "/win32icon:$appIcon" $resources "/out:$output\WiiUAchievements.exe" $sources
-if ($LASTEXITCODE -ne 0) { throw 'Compilazione applicazione fallita.' }
+# Arguments go through a response file: with every medal embedded, a deep checkout path would
+# exceed the Windows command-line limit.
+$arguments = @('/nologo', '/langversion:5', '/target:winexe', '/platform:x64', '/optimize+', '/utf8output', '/r:System.Xml.Linq.dll', '/r:System.Web.Extensions.dll',
+    '/r:System.Security.dll', '/r:System.Windows.Forms.dll', '/r:System.Drawing.dll', '/r:Accessibility.dll', "/win32icon:$appIcon", "/out:$output\WiiUAchievements.exe") + $resources + $sources
+$response = Join-Path ([IO.Path]::GetTempPath()) ('WiiUAchievements-build-' + [guid]::NewGuid().ToString('N') + '.rsp')
+try {
+    [IO.File]::WriteAllLines($response, [string[]]@($arguments | ForEach-Object { '"' + $_ + '"' }), (New-Object Text.UTF8Encoding($false)))
+    & $compiler "@$response"
+    if ($LASTEXITCODE -ne 0) { throw 'Compilazione applicazione fallita.' }
+}
+finally { Remove-Item -LiteralPath $response -ErrorAction SilentlyContinue }
 if ($output.TrimEnd('\') -ne $PSScriptRoot.TrimEnd('\')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'achievements.xml') -Destination $output -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'achievements-planned.xml') -Destination $output -Force

@@ -8,7 +8,7 @@ La tunica mantiene lo stesso ID e lo sblocco già guadagnato.
 
 ## Come usarla durante la partita
 
-Avvia `build-check/playthrough/WiiUAchievements.exe`, collega Cemu sulla partita
+Avvia `WiiUAchievements.exe` nella directory principale, collega Cemu sulla partita
 già caricata e lascia attiva la registrazione mentre giochi. Non serve tornare
 indietro per ogni oggetto. Le schede seguono ora un ordine indicativo di percorso;
 **Tappa** / **F** seleziona il capitolo, **Categoria** / **C** il tipo di obiettivo.
@@ -20,9 +20,11 @@ Gli obiettivi sperimentali hanno **Sperimentale** nei dettagli, `*` vicino ai pu
 e una notifica indicata come sperimentale. Sono implementati. Le voci **Non
 attivo**, invece, non hanno ancora una condizione e non possono sbloccarsi.
 
-Collegati prima dell'evento e attendi circa un secondo: servono tre campioni
-consecutivi prima e dopo il passaggio. Gli oggetti già posseduti al collegamento
-non vengono assegnati retroattivamente. I traguardi già guadagnati rimangono.
+Collegati sulla partita caricata e attendi la stabilizzazione. La produzione
+riconosce anche le condizioni già soddisfatte dopo il controllo del contesto
+di gioco e tre conferme coerenti. Le condizioni sperimentali mantengono i loro
+limiti di verifica; i 40 bersagli non attivi non vengono assegnati. Gli sblocchi
+già registrati conservano le loro date.
 Puoi lasciare l'app collegata durante i caricamenti: mostra **Attesa automatica**,
 poi riprende dopo la stabilizzazione. Pausa/Scollega restano facoltativi nei
 flussi verificati. Evidenze e casi ancora da verificare: [caricamenti automatici](AUTOMATIC-LOADS.md).
@@ -83,3 +85,8 @@ Una lettura passiva sulla sessione EUR iniziale ha prodotto 50 campi disponibili
 compatibili con la tunica, il portafoglio iniziale e tre settori iniziali. Non
 prova le acquisizioni future. Stato delle prove: `VALIDATION.md`, dettagli tecnici:
 `MEMORY-MAP.md`. Riavvii reali di Cemu e la partita completa restano da verificare.
+
+Titoli, nomi italiani, soglie descritte e icone sono stati ricontrollati il
+31 ottobre 2026: [revisione completa delle 110 voci](ACHIEVEMENT-AUDIT.md).
+Il file editoriale è la fonte dei testi attualmente mostrati dall'app; le tabelle
+di ricerca qui sopra possono usare anche i nomi inglesi, tuttora ricercabili.

@@ -52,8 +52,19 @@ Vedi [architettura](docs/ARCHITECTURE.md) e [mappa di memoria](docs/MEMORY-MAP.m
 ## Obiettivi e progressi
 
 - **Tutti / Sbloccati / Da sbloccare / Non attivi** filtrano il catalogo.
-- **Categoria (C)** filtra il tipo; **Tappa (F)** segue il percorso della partita.
-- Un clic su una scheda apre descrizione, rarità e stato del rilevamento.
+- La **ricerca** (Ctrl+F) trova nome, descrizione, categoria, tappa o rarità,
+  senza distinguere maiuscole e accenti.
+- I menu **Categoria (C)**, **Tappa (F)**, **Ordina per (S)** e **Altri filtri (R)**
+  (rarità, rilevamento, immagini) mostrano ogni opzione con il numero di
+  obiettivi e si combinano; **Azzera** ripristina la vista iniziale. La ricerca
+  conosce anche i nomi inglesi degli oggetti e la parola «boss».
+- Le schede mostrano titoli e descrizioni rivisti per intero; la
+  [revisione completa](docs/ACHIEVEMENTS.md) e l'[audit dei 110 obiettivi](docs/ACHIEVEMENT-AUDIT.md)
+  descrivono testi, rarità e icone.
+- Ogni stato ha icona, parola e forma propria: sbloccato (spunta), da sbloccare
+  (lucchetto), sperimentale (provetta), non attivo (clessidra, bordo tratteggiato).
+- Un clic su una scheda apre descrizione, rarità e stato del rilevamento; le
+  frecce ‹ › (o sinistra/destra) scorrono gli obiettivi nell'ordine visualizzato.
 - I 40 obiettivi non implementati non si sbloccano e non entrano nei punti o
   nella percentuale. I 53 sperimentali sono eseguibili ma richiedono prove live.
 - La produzione riconosce anche condizioni già presenti nel salvataggio, dopo
@@ -87,10 +98,14 @@ Per cambiare account usa **Esci**. [Guida e limiti del cloud](docs/CLOUD.md).
 | A / X / Y | Collega Cemu / demo separata / scollega |
 | P | Pausa o riprendi il rilevamento |
 | G | Catalogo Giochi |
-| C / F | Categoria / tappa |
+| C / F / S / R | Scorri categoria / tappa / ordine / rarità |
+| Ctrl+F | Cerca (Esc cancella, poi esce) |
 | Tab, frecce, Invio | Navigazione e attivazione |
 | B / Esc | Chiudi pannello o ritorna agli obiettivi |
 | Rotella / Pagina su-giù | Scorrimento |
+
+**Movimento ridotto** (Impostazioni) segue l'impostazione animazioni di Windows
+finché non scegli diversamente: dissolvenze brevi al posto di zoom e scorrimenti.
 
 La notifica animata non prende il focus e lascia passare i clic. Il jingle è
 originale e sintetizzato; rarità e colore guidano cornice, nastrino e bagliore.
@@ -117,7 +132,8 @@ Non vengono creati ZIP o cartelle di release automaticamente. `package.ps1` rest
 uno strumento facoltativo per una distribuzione richiesta esplicitamente;
 GitHub Actions lo usa nel proprio ambiente temporaneo.
 
-Ultime verifiche locali: **322 controlli core/Win32** e **91 controlli UI**.
+Ultime verifiche locali: **322 controlli core/Win32** e **143 controlli UI**.
+Elenco per il giocatore degli obiettivi eseguibili: [ACHIEVEMENTS-DISPONIBILI](docs/ACHIEVEMENTS-DISPONIBILI.txt).
 Le prove sintetiche non certificano tutti gli obiettivi sul gioco reale.
 [Registro delle verifiche](docs/VALIDATION.md). Gli artifact delle build Windows
 sono disponibili nelle [esecuzioni GitHub Actions](https://github.com/hoffo1987/WiiU-Achievements/actions).
@@ -138,9 +154,13 @@ Per trasferire i tuoi progressi chiudi l'app e copia la sola directory
 `%LOCALAPPDATA%\WiiUAchievements\progress` sul nuovo PC, mantenendo lo stesso
 profilo. Non copiare `cloud.xml`.
 
-Loghi, illustrazioni, medaglie, cornici, pergamena e video sono stati forniti dal
-proprietario del progetto e pubblicati su sua richiesta. Non sono estratti dal
-gioco da questo programma. I suoni e le icone vettoriali di riserva sono generati
+Loghi, 53 medaglie, cornici, pergamena e video sono stati forniti dal
+proprietario del progetto e pubblicati su sua richiesta. Su sua richiesta sono
+state composte le 57 medaglie mancanti con PNG pubblici di Wind Waker e le sue
+cornici: tutti i 110 achievement hanno ora un'icona personalizzata. Il montaggio
+preserva i soggetti, usa livelli e ombre e non impiega AI generativa.
+[Fonti, distinzioni tra artwork e render e riproduzione](docs/ARTWORK-SOURCES.md).
+Nessun file è estratto dal gioco da questo programma. I suoni e le icone vettoriali di riserva sono generati
 dal codice. Nunito è distribuito con [SIL OFL 1.1](assets/fonts/OFL.txt).
 Non è stata scelta una licenza generale di redistribuzione del progetto; non
 presumere che l'autorizzazione alla pubblicazione trasferisca diritti sulle opere.

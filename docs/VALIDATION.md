@@ -1,5 +1,274 @@
 # Validation record and reproduction
 
+## Integration of the redesign with the 110-medal catalog review — 2026-10-31, Windows x64
+
+The UI redesign (below) and the uncommitted work found in the main checkout (the
+complete editorial/artwork review and its medals, recorded further below) were
+combined on the owner's request. Kept from the review: all 110 personalized icons
+(53 owner + 57 composed, with `docs/ARTWORK-SOURCES.md`; the owner approved
+publishing them), the revised titles/descriptions/chapters in
+`achievement-presentation.xml`, the audit and composition tools, the 132 px card
+height and the high-contrast rarity labels. Kept from the redesign: toolbar,
+menus, cards, detail browser, catalog and motion. The review's separate search
+box, context menus and eight-way sort were replaced by the redesign's toolbar;
+its rarity, detection and image filters became one grouped **Altri filtri (R)**
+menu, and its Italian/English search aliases now feed the redesign's search.
+Rules, IDs, revision, conditions and progress are unchanged.
+
+Also fixed: `build.ps1` passes compiler arguments through a response file, since
+110 embedded medals in a deep folder exceeded the Windows command-line limit;
+`docs/ACHIEVEMENTS-DISPONIBILI.txt` (stale titles and pre-recovery recording
+advice) is regenerated from the loaded catalog by `tools/render-docs.ps1`, and
+the identical root copy was removed.
+
+Checked: build succeeds from the worktree path; `tests/run.ps1` **322 checks
+passed**; `tests/run-ui.ps1` **143 checks passed**, including every title,
+description and requirement fitting the narrowest card (340 px, the new minimum
+card width) and the detail card, the grouped filter menu, rarity/detection/image
+combinations, empty "Senza icona" result and English/boss search aliases;
+`python -I tools/audit-achievement-catalog.py` passed (110 IDs, texts, images,
+frame rarities, unchanged rules). Scroll timing: median 1.9 ms, p95 18 ms.
+Screenshots and the list were regenerated synthetically.
+
+## UI, graphics and motion redesign — 2026-10-31, Windows x64
+
+Presentation-only rework of the Wii U chrome and the Wind Waker section; see
+[UI](UI.md). New: toolbar panel with icon tabs, accent-insensitive search
+(Ctrl+F), Categoria/Tappa/Ordina menus with counts, five orderings, Azzera and a
+state key; cards with medal well, adaptive titles and state shown by badge icon,
+chip words and outline (check/lock/flask/hourglass, dashed for not implemented);
+detail browser with ‹ › navigation and a facts table; responsive banner height
+with status disc and shoreline seam; redesigned Games catalog; rarity-graded
+celebrations and chime; reduced-motion mode following Windows or a saved choice.
+Engine, memory reader, sampling, conditions, IDs, points, revision and progress
+format are unchanged; only `settings.xml` may gain an optional `<motion>` element.
+
+Checked on this Windows x64 machine (synthetic data only; no Cemu, ROM, real
+progress or account):
+
+- Official C# 5 / .NET Framework x64 build (`build.ps1`) succeeds, in Temp and
+  in this worktree's root. The owner's running EXE in the main checkout was not
+  touched.
+- `tests/run.ps1`: **322 core/Win32 checks passed** (unchanged code paths).
+- `tests/run-ui.ps1`: **133 UI checks passed in three consecutive runs** before integration
+  (91 before). New checks cover search (case/accents, counts, empty state and
+  reset), every ordering, Azzera, menus (separate input layer, all entries,
+  keyboard focus on the current entry, arrows/Enter, Esc returning focus, click
+  outside), accessibility roles for drop-downs, detail browsing bounds and keys,
+  distinct state words, toolbar/banner/grid stacking without overlap and card
+  width ≥ 320 px at 900×680, 1120×800, 1920×1080 and 2560×1080, reduced motion
+  (settings without slide, no grid entrance, popup medal still turns grey to
+  colour, saved `<motion>` choice and its removal), and partial repaints of
+  tabs, menus, search and state key matching whole frames at 100/125/150/200 %
+  (0 differing pixels).
+- Scroll timing (110 cards, 80 grid frames, same machine): median 1.7–2.4 ms,
+  p95 21–23 ms, versus 1.6 ms / 20.5 ms for the previous commit run alongside.
+- Visual review of the synthetic frames from `tools/render-docs.ps1` at
+  900×680, 1120×800, 1920×1080 and 3440×1440 (ultrawide, halved), plus menus
+  opening below and (at minimum size) above, search, empty search, hover, detail
+  at minimum size, card celebration frames, popups per rarity and catalog.
+  Long titles wrap instead of being cut; secondary state words are only drawn
+  when they fit whole.
+
+Test-suite note: the previous commit's UI suite also failed intermittently on
+this machine in the cloud section (1 of 2 runs), and always when run from a very
+long output folder. Causes: an automatic sync could still be in flight when the
+controls were asserted, and `cloud.xml.<guid>.tmp` exceeded the Windows path
+limit. The test now waits until account work is idle and reports the account
+state on failure; run it from a short folder (the `%TEMP%` default).
+
+Not verified: live Cemu sessions, the layered popup over a real fullscreen game,
+real Windows display-scaling changes (only offscreen 100–200 % rendering), the
+"Show animations" system switch toggled at the OS level, and screen readers.
+Hover and press were checked through rendered frames and input simulation, not
+by a person using the mouse. Achievement mappings are not re-certified.
+
+## Complete 110-objective editorial/artwork audit — 2026-10-31, Windows x64
+
+Reviewed every effective title, description, executable/planned requirement,
+rarity, category/chapter/order and personalized image. Updated 60 titles and
+all 110 descriptions in editorial metadata; all three rule XML files remain
+byte-identical, as checked against the pre-review snapshot and recorded hashes.
+IDs, revision, thresholds, points, categories, experimental flags and persistence
+identity are unchanged. Native Italian terminology is based on Nintendo's Italian
+manual/page and archived in-game name citations; English aliases stay searchable.
+See `docs/ACHIEVEMENT-AUDIT.md` for every ID, findings and source links.
+
+Clarified balance versus cumulative earnings, maximum versus current health,
+capacity versus current ammunition, filled bottles, initial chart sectors and
+compound boss/sword/soup conditions. Clarified the next 20 Portafelicita after
+the villa, HD rewards, 14 exterior decoration pedestals, three deciphered Triforce
+maps and Mingle's HD gallery requirement. Collection tiers now ascend in gameplay
+order; initial minigames stay with their actual chapter. The current 53 bronze /
+47 silver / 10 gold assignments were retained after review. A static pixel check
+of 15,367 opaque outer-ring samples confirms the correct frame for all 110 PNGs;
+the two initially suspected small-preview mismatches were already correct.
+
+Six images were improved: Canzone del Vento replaces incorrect baked-in wording
+with Zephos artwork; three sea-chart icons use the Fishman instead of a special
+chart; four bottles are separately visible; the first barrel-game reward is a
+Piece of Heart rather than the second-win treasure map. The deterministic
+manifest now covers 58 compositions and 52 unchanged earlier owner PNGs, retains
+the superseded owner's hash and adds a rule-file contract. No generative editing
+or game/model archive extraction. The import tool accepts both planned/current
+editorial titles and legacy source titles.
+
+Rarity labels are 80x22 logical px with 13.64 px heavy dark lettering and a flat
+light metal face. They keep full opacity under locked medals; the same renderer
+serves cards, details and notifications. Nominal palette contrast is 8.78:1 bronze,
+10.35:1 silver, 8.94:1 gold and 9.71:1 platinum. Cards are 132 px tall, support two
+title lines and three description lines; the compact banner is 176 px so a full
+expanded row still fits at 900x680. Static/dynamic progress footers use the same
+new location. These choices were visually inspected in full and minimum-size
+previews, including labels at 1x and 2x.
+
+Checked: **147 isolated UI checks passed**, including the measured fitting of
+all 110 titles and descriptions at the narrowest card text widths and in the
+detail dialog, contrast and untrimmed labels, local/English search aliases,
+filter/menu/sort/cache behavior, 100/125/150/200 percent partial-repaint and search
+font checks, recording and offline progress. An initial search assertion expected
+only the explicit boss tags, overlooking ordinary text matches such as Octoboss
+and descriptions mentioning bosses; it now checks that battle IDs are included
+and unrelated dungeon equipment is excluded. A later rerun exposed stale fixture
+award dates from reusing the output folder; the startup-progress fixture now has
+a unique per-run directory. No production persistence or search matching rule
+was weakened to satisfy either assertion. Final scroll sample: median 1.48 ms,
+p95 16.20 ms across 80 grid frames.
+
+**322 core/Win32 checks passed**. The default Temp-staged attempt was denied at
+an atomic file move by the sandbox; the identical suite passed with TEMP/TMP
+scoped only to workspace test staging. No storage code changed. The static
+catalog audit passed all 110 IDs/text/image/rarity mappings, preserved owner
+hashes, unchanged rule hashes and ascending collection groups. All 110 embedded
+PNG streams in the rebuilt root EXE match final asset SHA-256 hashes.
+
+Regenerated all 18 public documentation PNGs from isolated synthetic state.
+Closed only the observed disconnected root app, rebuilt its root EXE and reopened
+it. The new real window shows revised titles/labels and the existing four saved
+unlocks. No live Cemu test, new detector certification, ZIP or publication. The
+53 experimental and 40 unimplemented targets retain their existing status.
+
+## Complete personalized medal artwork — 2026-10-31, Windows x64
+
+Filled the 57 missing personalized icons (20 bronze, 28 silver, 9 gold) using
+publicly available Wind Waker PNGs and the owner's supplied rarity templates.
+The owner explicitly selected precise compositing without generative AI.
+Promotional Nintendo artwork, official item renders and published original-model
+PNG renders are individually distinguished in `docs/ARTWORK-SOURCES.md` and the
+hash-pinned composition manifest. No game/model archive was downloaded or ripped.
+Proportionate subjects use two silhouette shadows behind them and the original
+boat/frame in front. Collection thresholds have small original number badges.
+
+Checked: all 57 full exports are 1254×1254 RGBA with transparent outer corners;
+all 57 runtime exports are 256×256 RGBA; source/template/export hashes validate;
+all 53 previously supplied runtime icons remain byte-identical. All 57 ID/rarity
+mappings match current editorial metadata. Inspected all three labelled contact
+sheets and the updated rarity-order app preview. All 110 embedded PNG streams
+in the isolated compiled app match the prepared runtime asset SHA-256 hashes.
+
+The C# 5 / .NET Framework x64 build and **133 isolated UI checks passed**.
+The suite checks all 110 embedded icons, the now-empty missing-art filter,
+combined status/category/chapter filters, and continued missing-art support for
+a synthetic future game without personalized resources. Search, rarity sorting,
+menus, caches, recording and offline progress checks remain passing. The first
+run failed the focused Escape assertion; the harness now explicitly restores
+the search focus after its expensive preview render before dispatching Escape.
+The complete rerun passed. No production keyboard behavior was changed.
+
+Regenerated all 18 documentation PNGs with isolated synthetic state in workspace
+staging. The existing disconnected root app was closed, the root EXE rebuilt,
+and the app reopened. The real window retained its four saved unlocks. Selected
+**Immagini → Senza icona** through its real menu: zero of 110 results, as expected;
+then reset the catalog. Existing progress, IDs, revision, points, rules, memory
+and persistence semantics are unchanged. No new Cemu or core-engine validation,
+ZIP or publication was performed. The package allowlist now includes the source
+register, deterministic composition tool and owner templates for reproducibility.
+
+## Search, direct filters, sorting and 17 owner medals — 2026-10-31, Windows x64
+
+Added 17 prepared 256×256 RGBA images (53 supplied icons, 57 fallbacks total).
+The filename "Artificiere del male" aliases the existing "Artificiere del mare"
+(`gear-bombs-99`). Shared rarity frames/sky, rule titles, IDs and set revision
+are unchanged. The owner supplied all source images; no artwork was generated.
+
+Replaced category/chapter cycling with direct menus, added rarity/image/detection
+filters, eight sort choices, live text search with accent/case/punctuation
+normalization and equipment keywords, result/filter counts and reset. The
+missing-art view is now **Immagini → Senza icona**, independently combinable with
+status. A shorter proportional banner at minimum height leaves room for the
+new controls and a full card row; normal-height composition is retained.
+
+Checked: C# 5 / .NET Framework x64 build; **131 UI checks passed** using isolated
+synthetic state. Coverage includes title/description/keyword search, native
+search focus and typing shortcut isolation, all sort modes, direct menu action,
+filter combinations and empty states, 53 embedded icons, 57 missing-art targets,
+minimum-size nonoverlap, overlay visibility, scrolling/caches, partial filter
+repaints and native search-font scaling at 100/125/150/200 % offscreen scale,
+recording and offline progress. The preceding 124-check run's scroll harness
+measured median 1.34 ms, p95 18.63 ms across 80 bitmap grid frames.
+Visually inspected filtered search results and the 900×680 browser preview.
+
+An earlier complete run passed 123 checks. Follow-up runs exposed a timing race
+in the existing synthetic cloud UI checks: login immediately starts a separate
+sync, temporarily disabling logout. The harness now pumps the continuation and
+waits for that operation before asserting control states; production cloud
+logic is unchanged. The 124-check rerun and final 128-check DPI run passed.
+
+The subsequent real-window menu test found that disposing a ContextMenuStrip
+in its Closed event runs before WinForms dispatches the item's click, causing an
+ObjectDisposedException. Menus now stay alive until the next opening or form
+disposal. Three regressions exercise closure-before-click and reopening; the
+final **131-check** suite passed. The affected root app was disconnected.
+Rebuilt and reopened the corrected root EXE, selected "Rarità: più rare prima"
+through its real menu without an exception, focused search with Ctrl+F, typed
+"capacita bombe 99" and observed the single matching Artificiere del mare card
+with the supplied icon. Escape cleared the query while retaining rarity order.
+The existing four saved unlocks remained displayed. All 53 embedded PNG streams
+were also checked against the prepared asset SHA-256 hashes.
+
+The documentation renderer regenerated 18 public PNGs from isolated synthetic
+state, adding search, rarity order and missing-art examples. The default Temp
+staging attempt hit a sandbox atomic-move denial; the same renderer completed
+with staging and synthetic state inside the workspace test-results directory.
+
+No new core-engine or live Cemu test; no memory, persistence schema, achievement
+conditions, points or detector certification changed. No ZIP or publication.
+
+## Missing personalized artwork section — 2026-10-31, Windows x64
+
+Added the fifth catalog tab **Senza icona**, using the actual per-game embedded
+icon availability. It lists all 74 current fallback medals, including executable
+and pending targets, independently of unlock status. Its count follows category
+and chapter filters; accessible help explains that personalized images are missing.
+
+Checked: C# 5 / .NET Framework x64 build; **96 UI checks passed** with isolated
+synthetic data. Added coverage for the 74-target membership/count, exclusion of
+supplied art, category/chapter combinations and an empty selection, browsing
+during recording without replacing the engine or changing unlocks, and the fifth
+tab fitting at 900 px. Existing partial-repaint checks still pass at
+100/125/150/200 % offscreen scale. Visually inspected the 900×680 filtered preview.
+Closed only the observed disconnected root app before rebuilding its EXE.
+No new live Cemu or core-engine test; no engine/memory/persistence/ID/revision change.
+
+## Eight additional owner medal images — 2026-10-31, Windows x64
+
+Matched the owner's PNG filenames to the existing titles/IDs for Il primo volo,
+Andata e ritorno, Fuoco e ghiaccio, La forza sotto la lava, Piedi ben piantati,
+Riflessi d'eroe, Appigli da pirata and Vento in poppa. Prepared eight 256×256 RGBA
+icons with premultiplied-alpha resampling, retaining the supplied complete frame.
+The new `--icons-only` preparation option leaves shared frames and sky intact.
+The existing renderer uses these images in cards, details and notifications.
+
+Checked: official C# 5 / .NET Framework x64 build; **91 UI checks passed** with
+isolated synthetic data, including 36 embedded owner icons, matching existing
+IDs, cached rendering, locked/colour medals, popups and offline saved progress.
+The root EXE was rebuilt after the old disconnected window was closed. No ZIP
+was created. All eight embedded PNG streams match the prepared asset files by
+SHA-256. Reopened the root application and checked its normal disconnected
+window, with the existing four saved unlocks still displayed.
+No engine, memory, persistence, ID, revision or detector changes;
+no new live Cemu validation or core-engine test was performed.
+
 ## Documentation and GitHub refresh — 2026-10-30, Windows x64
 
 README and operational guides now describe the current 70 executable / 53

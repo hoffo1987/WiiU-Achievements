@@ -13,6 +13,78 @@ this does not authorize unrelated future external actions. No local ZIP is neede
 
 # Start here — handoff for another AI or developer
 
+**Integrated main (2026-10-31):** the UI redesign below and the complete
+catalog/medal review further below are combined. Current UI facts are those of
+the redesign entry and `docs/UI.md`: one toolbar with tabs, search, Categoria/
+Tappa/Ordina and **Altri filtri** (rarity, detection, images); 132 px cards with
+a 340 px minimum width. Statements in the review entries about a separate search
+box, five direct menus or eight sort modes describe the intermediate version and
+are superseded. All 110 medals, revised texts, audit and tools are current.
+`build.ps1` uses a response file. 322 core and 143 UI checks pass.
+
+**UI, graphics and motion redesign (2026-10-31):** presentation only. Toolbar
+panel with icon tabs, search (Ctrl+F), Categoria/Tappa/Ordina menus (C/F/S still
+cycle), five orderings, Azzera and a state key; cards read their state by icon,
+word and outline; detail browser with ‹ ›; responsive banner; new catalog cards;
+rarity-graded celebrations; reduced motion (Windows setting or saved choice).
+Code is split into `MainForm.Toolbar/Cards/Detail.cs`, `Theme.Icons.cs` and
+`Motion.cs`. 322 core and 133 UI checks passed before integration; see the latest `docs/VALIDATION.md`
+record and `docs/UI.md`. IDs, revision, conditions and progress are unchanged.
+
+**Complete catalog/editorial review (2026-10-31):** reviewed all 110 IDs
+against conditions/planned requirements, rarity and icon subjects/frames.
+Changed 60 titles and all 110 descriptions in `achievement-presentation.xml`;
+all executable/companion rule files remain byte-identical. Native Italian names
+and English search aliases coexist. Collection order now ascends by threshold;
+initial minigames retain their real chapter. All 110 artwork frames match the
+53 bronze / 47 silver / 10 gold assignments. Six icons were refined: song name,
+sea sectors, visible bottles and the first barrel-game reward. There are now
+58 deterministic compositions and 52 preserved owner PNGs. Cards are 132 px tall
+with fully fitting current titles/descriptions; labels are 80×22 px, high contrast
+and fully opaque for locked medals. 147 UI and 322 core/Win32 checks passed.
+`docs/ACHIEVEMENT-AUDIT.md` records every ID and sources; the static audit is
+`python -I tools/audit-achievement-catalog.py`. No detector was newly certified;
+53 remain experimental and 40 unimplemented. IDs/revision/progress are unchanged.
+The current executable remains in the project root; no ZIP or publication.
+Historical counts and preservation claims below describe earlier milestones.
+
+**Personalized medal artwork complete (2026-10-31):** all 110 current
+objectives now have personalized icons. The owner requested public Wind Waker
+PNGs/renders and explicitly chose precise composition without generative AI.
+The 57 previously missing icons use the supplied rarity frames, proportionate
+subjects, silhouette shadows and foreground boat/frame. All 53 earlier owner
+runtime icons remain byte-identical. See `docs/ARTWORK-SOURCES.md` and the
+hash-pinned `tools/artwork/wind-waker-hd/compositions.json`; the reproduction
+tool is `tools/compose-achievement-icons.py`. Full 1254 px exports are local in
+ignored `output/achievement-icons/`; only 256 px PNGs are embedded. The
+**Immagini → Senza icona** filter remains and returns zero for this catalog.
+The root EXE is updated; 133 isolated UI checks passed. IDs, revision, rules
+and progress are unchanged. Historical counts below
+refer to their dated milestones.
+
+**Catalog browser and 17 more owner medals (2026-10-31):** 53 personalized
+medals now replace matching glyphs; 57 remain. The "Artificiere del male" file
+maps to existing "Artificiere del mare" without a title/ID change. Browsing now
+has live keyword search, direct category/chapter/rarity/image/detection menus,
+eight sort modes (including both rarity directions), result counts and reset.
+The old missing-icon tab is now **Immagini → Senza icona**, combinable with
+status and every filter. C/F open menus; Ctrl+F searches. See `docs/UI.md`.
+131 isolated UI checks passed. IDs/revision/progress and engine semantics stay
+unchanged; no detector was newly certified by this presentation change.
+
+**Missing-art section (2026-10-31):** the fifth catalog tab, **Senza icona**,
+lists objectives without personalized images (currently 74), including active
+and pending targets. Counts follow category/chapter filters. This is UI only;
+96 isolated UI checks passed. The root EXE is updated; IDs/revision/progress and
+recording semantics are unchanged. See `docs/UI.md` and `docs/VALIDATION.md`.
+
+**Additional owner medals (2026-10-31):** eight supplied images now replace the
+glyphs for Il primo volo, Andata e ritorno, Fuoco e ghiaccio, La forza sotto la
+lava, Piedi ben piantati, Riflessi d'eroe, Appigli da pirata and Vento in poppa.
+There are 36 embedded owner icons. `prepare-game-art.py --icons-only` supports
+additional batches without regenerating shared frames/sky. The root EXE is
+updated; 91 isolated UI checks passed. IDs, revision and progress are unchanged.
+
 **Owner clarification: retain nautical decoration (2026-10-30):** wind/water
 motifs, the original parchment and the simple blue/gold frames are wanted.
 Restored their visibility while keeping the revised logo positions and separate
@@ -254,6 +326,8 @@ Source entry points:
 - `src/MainForm.Library.cs`: catalog rendering and navigation using the existing theme.
 - `src/MainForm.cs`: attach sequence, 100 ms sampling timer, demo, settings, toast queue.
 - `src/MainForm.Ui.cs`, `src/MainForm.Tiles.cs`: custom-drawn window, bounded card cache, layout, animations, input, accessibility.
+- `src/MainForm.Toolbar.cs`, `src/MainForm.Cards.cs`, `src/MainForm.Detail.cs`: tabs/search/menus/order, card states, detail browser.
+- `src/Theme.Icons.cs`, `src/Motion.cs`: state/navigation icons and the reduced-motion preference.
 - `src/Theme.cs`, `src/Banner.cs`: palette, embedded Nunito font, vector icons/medals, sea banner.
 - `src/Notification.cs`: layered unlock popup and synthesised chime.
 - `src/GameSession.cs`: identification from the active Cemu log.

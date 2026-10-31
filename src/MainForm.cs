@@ -43,6 +43,7 @@ namespace WiiUAchievements
         ulong guestBase;
         DateTime identityCheck;
         bool demo, recording, connecting, paused, soundOn = true, ambientOn = true;
+        string motionChoice; // null follows the Windows animation setting
         int engineStateVersion;
         int demoTick;
         ToastForm activeToast;
@@ -99,6 +100,8 @@ namespace WiiUAchievements
                 var doc = SafeXml.Load(path);
                 cemuPath.Text = (string)doc.Root.Element("cemu") ?? cemuPath.Text; player.Text = (string)doc.Root.Element("player") ?? player.Text;
                 soundOn = (string)doc.Root.Element("sound") != "false"; ambientOn = (string)doc.Root.Element("ambient") != "false";
+                string motion = (string)doc.Root.Element("motion");
+                if (motion == "reduced" || motion == "full") { motionChoice = motion; Motion.Reduced = motion == "reduced"; }
                 var savedGame = GameCatalog.Games.FirstOrDefault(g => g.Id == (string)doc.Root.Element("game") && g.Available);
                 if (savedGame != null && savedGame != selectedGame) ApplyGameSelection(savedGame);
             }
@@ -107,7 +110,8 @@ namespace WiiUAchievements
         void SaveSettings()
         {
             SafeXml.AtomicSave(new XDocument(new XElement("settings", new XElement("cemu", cemuPath.Text), new XElement("player", player.Text), new XElement("game", selectedGame.Id),
-                new XElement("sound", soundOn ? "true" : "false"), new XElement("ambient", ambientOn ? "true" : "false"))), Path.Combine(dataRoot, "settings.xml"));
+                new XElement("sound", soundOn ? "true" : "false"), new XElement("ambient", ambientOn ? "true" : "false"),
+                motionChoice == null ? null : new XElement("motion", motionChoice))), Path.Combine(dataRoot, "settings.xml"));
         }
         ProgressStore OpenProgress(string fingerprint)
         {
@@ -271,7 +275,7 @@ namespace WiiUAchievements
             arts.Clear(); foreach (var pair in loadedArt) arts.Add(pair.Key, pair.Value);
             if (backdrop != null) { backdrop.Dispose(); backdrop = null; } // The backdrop follows the game palette.
             CloseBannerVideo();
-            celebrations.Clear(); filter = categoryFilter = chapterFilter = 0; scroll = scrollTarget = 0; tabX = -1;
+            celebrations.Clear(); filter = categoryFilter = chapterFilter = sortMode = rarityFilter = detectionFilter = iconFilter = 0; search.Clear(); scroll = scrollTarget = 0; tabX = -1;
             Text = "Wii U Achievements — " + game.Title;
         }
         void Tick(object sender, EventArgs e)
