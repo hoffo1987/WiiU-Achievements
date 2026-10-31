@@ -2,6 +2,15 @@
 
 # Wii U Achievements
 
+**Fork Cemu integrato, 31 ottobre 2026:** disponibile il
+[fork Cemu 2.6](https://github.com/hoffo1987/Cemu-WiiUAchievements), con motore e
+pannello nello stesso processo dell'emulatore. La build Windows è riuscita;
+avvio del gioco, attesa nei menu, pannello e riavvio sono stati provati sul PC.
+Eseguibile locale: `build-check/cemu-integrated/Cemu.exe`;
+menu **Strumenti → Wii U Achievements**. Vedi la
+[guida dell'integrazione](docs/CEMU-INTEGRATION.md) per uso e prove ancora mancanti.
+Il set mantiene i rilevamenti sperimentali e i traguardi non implementati.
+
 Sistema di obiettivi indipendente per giochi Wii U emulati su PC, scritto da zero
 in C# 5 / .NET Framework x64. Primo gioco supportato: **The Wind Waker HD EUR v0
 su Cemu 2.6**, RPX **cdc68acd**. Nessuna dipendenza da EmuHook o RetroAchievements.

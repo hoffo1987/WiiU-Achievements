@@ -1,5 +1,22 @@
 # Current documentation entry point
 
+**Cemu integration attempt (2026-10-31):** the owner requested a fork with
+in-process achievements. `integrations/cemu/` contains the pinned v2.6 native
+CLR host, lifecycle/frame/menu patch and reproducible Windows build workflow.
+`src/NativeCemuBridge.cs` and `MainForm.Native.cs` reuse the existing C# engine,
+UI, archive and cloud client inside Cemu. See `docs/CEMU-INTEGRATION.md` and
+the latest validation record. This does not certify the experimental detectors
+or implement the remaining 40 targets. Keep the Desktop emulator separate until
+native build and live validation are complete.
+
+The Windows native build now passes (CI run `41240085236`). The usable local
+fork is `build-check/cemu-integrated/Cemu.exe`, with its `WiiUAchievements/`
+module beside it. Actual PC startup, same-process Tools panel, Wind Waker title/
+menu waiting, clean exit and complete Cemu restart with the existing catalog
+awards displayed passed. In-world save/load/awards and fullscreen popup checks
+remain pending; see the dated validation record. The original Desktop EXE is
+untouched. The fork was left open for the owner after these checks.
+
 Current local executable: root `WiiUAchievements.exe`. Read `README.md` for the
 current user guide, `docs/UI.md` for the final visual composition, and
 `docs/VALIDATION.md` for dated evidence. The detailed handoff below includes

@@ -1,5 +1,73 @@
 # Validation record and reproduction
 
+## Cemu in-process integration attempt — 2026-10-31, Windows x64
+
+Implemented an official-v2.6 pinned fork overlay: in-process .NET Framework CLR
+host, submitted-game-frame sampling (100 ms), exact Cemu title/RPX identification,
+title/debugger lifecycle resets and Tools menu. The managed adapter reuses the
+existing decoder/gate/engine/store/cloud/UI with bounded packet ownership and no
+process-memory writer. See `CEMU-INTEGRATION.md` for scope and live checklist.
+
+Local checked results: C# 5/.NET Framework x64 build succeeds; **322 core/Win32
+checks**, **143 existing UI checks**, **193 native-feed checks** and **15
+native-session UI checks** pass.
+Native checks include torn context/menus, invalid identity, pause/generation
+boundaries lost by queue replacement, stale/duplicate samples, exact decoder
+parity, feed-to-engine atomic persistence, an unread contradictory sample being
+dropped (which must reset confirmations), panel hide/recording behavior and
+timestamp-preserving reactivation. All use isolated synthetic progress.
+The default core-suite Temp attempt was denied at an atomic file move by the
+sandbox; it passed with TEMP/TMP scoped to workspace staging, as in the earlier
+validation record. No storage behavior was weakened.
+
+Patch whitespace/reverse-apply and idempotent allowlisted staging passed.
+The native host smoke test is CI-only and refuses an existing personal archive.
+This PC has no MSVC/CMake toolchain; native compilation is delegated to the
+fork's manual Windows CI. The native CLR smoke job in
+[run 41239152369](https://github.com/hoffo1987/Cemu-WiiUAchievements/actions/runs/41239152369)
+passed: real MSVC host compilation, CLR loading, hidden UI startup, file-select
+and pause exclusion, stabilization, durable awards, stop/update rejection,
+supported-title restart without duplicates and callback unregistration. This
+is synthetic host memory, not a running Cemu game. The corrected mailbox also
+passed the actual CLR smoke test plus all 208 feed/session checks in
+[run 41239503388](https://github.com/hoffo1987/Cemu-WiiUAchievements/actions/runs/41239503388).
+The first full-emulator build stopped before Cemu configuration because the
+pinned vcpkg helper requested an MSYS2 pkgconf archive that all mirrors return
+as 404. The workflow now selects an available native Windows pkg-config and
+preserves it through vcpkg's documented environment override; Cemu, the library
+baseline and ports are unchanged. Partial successful dependency packages are
+cached even on build failure. Full build
+[41240085236](https://github.com/hoffo1987/Cemu-WiiUAchievements/actions/runs/41240085236)
+**succeeded**, including all upstream dependencies, the actual Cemu core/GUI,
+CLR host and final Windows x64 executable. The native job took 22 minutes.
+The development artifact was downloaded to `build-check/cemu-integrated/`;
+its managed module was rebuilt from the current local source. Cemu-native
+sources are identical to the successful CI commit `4737bd4`; subsequent source
+changes only reorganize the managed session code and update documentation.
+
+Real Windows PC smoke checks passed with that build: startup as Cemu 2.6;
+Tools/Strumenti -> Wii U Achievements opens the existing catalog **inside the
+same Cemu process**; closing/reopening the panel leaves Cemu running; the existing
+recorded awards remain displayed. The configured Wind Waker HD launched through
+the normal game list. Its log identified EUR v0 and both base/updated RPX
+`cdc68acd`. The title screen/idle intro rendered in Vulkan; the native panel
+received real observations and displayed automatic menu waiting without new
+awards. Cemu then exited normally (exit code zero), and a complete new process
+reopened the catalog with the existing recorded awards still present. The fork
+is left open at the catalog/panel for the owner. An initial sandboxed launch
+did not remain available; the actual UI check used an authorized desktop launch.
+
+Not checked in this native fork: loading a save into playable gameplay, a new
+in-world award, gameplay pause/load/death/slot transitions, sustained performance,
+or popup visibility above a real fullscreen game. No experimental mapping is
+certified, no ID/revision changed, and the Desktop Cemu executable was not replaced.
+
+The handoff package allowlist now includes the native integration, adapter/tests
+and the existing `FramePacing.cs` dependency. `package.ps1 -ValidateSourcesOnly
+-SkipTests` verified the **301-file** staged manifest and rebuilt solely from
+those staged sources. No ZIP was created; the earlier engine/UI/native test
+results were not counted as packaging-time tests.
+
 ## Fixed window and performance pass — 2026-10-31, Windows x64
 
 The window has one fixed size, 1120×840 logical pixels, and cannot be resized or

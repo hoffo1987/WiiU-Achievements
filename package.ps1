@@ -1,6 +1,7 @@
 param(
     [string]$DestinationPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'WiiUAchievements-handoff.zip'),
-    [switch]$SkipTests
+    [switch]$SkipTests,
+    [switch]$ValidateSourcesOnly
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -14,7 +15,7 @@ try {
     # cannot accidentally enter an archive simply because they are in the folder.
     $names = @('AGENTS.md', 'HANDOFF.md', 'README.md', 'NEXT-STEPS.md', '.gitignore',
         'build.ps1', 'package.ps1', 'verify-package.ps1', '.firebaserc', 'firebase.json', 'firestore.rules',
-        'src\UserData.cs', 'src\CloudProject.cs', 'src\Gameplay.cs', 'src\CloudSync.cs', 'src\GameCatalog.cs', 'src\MainForm.Library.cs', 'src\MainForm.Tiles.cs', 'src\MainForm.Toolbar.cs', 'src\MainForm.Cards.cs', 'src\MainForm.Detail.cs', 'src\Core.cs', 'src\GameSession.cs', 'src\MainForm.cs', 'src\MainForm.Ui.cs', 'src\MemoryReader.cs', 'src\Program.cs',
+        'src\UserData.cs', 'src\CloudProject.cs', 'src\Gameplay.cs', 'src\CloudSync.cs', 'src\GameCatalog.cs', 'src\MainForm.Library.cs', 'src\MainForm.Tiles.cs', 'src\MainForm.Toolbar.cs', 'src\MainForm.Cards.cs', 'src\MainForm.Detail.cs', 'src\Core.cs', 'src\GameSession.cs', 'src\MainForm.cs', 'src\MainForm.Ui.cs', 'src\MainForm.Native.cs', 'src\NativeCemuBridge.cs', 'src\FramePacing.cs', 'src\MemoryReader.cs', 'src\Program.cs',
         'src\Theme.cs', 'src\Theme.Icons.cs', 'src\Motion.cs', 'src\Banner.cs', 'src\Notification.cs', 'src\WindWakerProgression.cs', 'src\GameStyle.cs', 'src\GameStyle.Assets.cs', 'src\BrandArt.cs', 'src\Medals.cs', 'src\Glyphs.cs', 'src\VideoBanner.cs', 'tools\prepare-game-art.py', 'tools\prepare-ui-art.py',
         'assets\brand\logo.png', 'assets\brand\app-icon.png', 'assets\brand\app.ico', 'tools\render-docs.ps1', 'tools\RenderDocumentation.cs',
         'tools\compose-achievement-icons.py', 'tools\audit-achievement-catalog.py', 'docs\ACHIEVEMENT-AUDIT.md', 'tools\artwork\wind-waker-hd\compositions.json',
@@ -27,7 +28,12 @@ try {
         'docs\screenshots\menu-small.png', 'docs\screenshots\hover.png', 'docs\screenshots\celebration.png', 'docs\screenshots\detail-small.png', 'docs\screenshots\main-small.png', 'docs\screenshots\main-wide.png', 'docs\screenshots\main-ultrawide.png',
         'tests\RecoveryTests.cs', 'tests\GameplayTests.cs', 'tests\CloudTests.cs', 'tests\CoreTests.cs', 'tests\SystemTests.cs', 'tests\ProgressionTests.cs', 'tests\UiTests.cs', 'tests\Probe.cs', 'tests\InitialItemProbe.cs', 'tests\inspect-initial.ps1', 'tests\run.ps1', 'tests\run.sh', 'tests\run-ui.ps1', 'tests\firestore-rules.cjs', 'tests\test-firestore.ps1',
         'docs\PROGRESS-RECOVERY.md', 'docs\GROK-REVIEW-2026-10-29.md', 'docs\AUTOMATIC-LOADS.md', 'docs\CLOUD.md', 'docs\ARCHITECTURE.md', 'docs\ACHIEVEMENTS.md', 'docs\PLAYTHROUGH.md', 'docs\RARITIES.md', 'docs\MEMORY-MAP.md', 'docs\VALIDATION.md', 'docs\COLLABORATION.md',
-        '.cursor\rules\project.mdc', '.github\workflows\validate.yml')
+        '.cursor\rules\project.mdc', '.github\workflows\validate.yml',
+        'tests\NativeCemuTests.cs', 'tests\NativeCemuUiTests.cs', 'tests\run-native.ps1', 'docs\CEMU-INTEGRATION.md',
+        'integrations\cemu\README.md', 'integrations\cemu\FORK.md', 'integrations\cemu\prepare.ps1', 'integrations\cemu\build.ps1', 'integrations\cemu\cemu-2.6.patch',
+        'integrations\cemu\native\CMakeLists.txt', 'integrations\cemu\native\WiiUAchievementsHost.cpp', 'integrations\cemu\native\WiiUAchievementsHost.h', 'integrations\cemu\native\WiiUAchievementsPacket.h',
+        'integrations\cemu\native-tests\NativeHostSmoke.cpp', 'integrations\cemu\native-tests\run-smoke.ps1',
+        'integrations\cemu\native-tests\stubs\Cafe\CafeSystem.h', 'integrations\cemu\native-tests\stubs\Cafe\HW\MMU\MMU.h', 'integrations\cemu\workflows\wiiu-achievements.yml')
     # Per-game artwork is reviewed as a folder: the owner's icons, rarity frames, sky and banner video.
     $names += @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'assets\games') -File -Recurse | Where-Object { @('.png', '.mp4') -contains $_.Extension.ToLowerInvariant() } | Sort-Object FullName |
         ForEach-Object { $_.FullName.Substring($PSScriptRoot.TrimEnd('\').Length + 1) })
@@ -60,6 +66,10 @@ try {
     & (Join-Path $stage 'verify-package.ps1')
     # Build solely from packaged sources, catching omitted source dependencies.
     & (Join-Path $stage 'build.ps1') -OutputDirectory (Join-Path $stageRoot 'rebuild-check')
+    if ($ValidateSourcesOnly) {
+        Write-Output 'Source bundle integrity and isolated rebuild passed. No ZIP created.'
+        return
+    }
     $temporaryZip = Join-Path $stageRoot 'package.zip'
     [IO.Compression.ZipFile]::CreateFromDirectory($stage, $temporaryZip)
     New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null

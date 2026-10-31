@@ -53,8 +53,11 @@ namespace WiiUAchievements
         public MainForm(bool startDemo, bool autoConnect)
             : this(startDemo, autoConnect, null) { }
         public MainForm(bool startDemo, bool autoConnect, string isolatedDataDirectory)
+            : this(startDemo, autoConnect, isolatedDataDirectory, null) { }
+        public MainForm(bool startDemo, bool autoConnect, string isolatedDataDirectory, NativeCemuFeed nativeSource)
         {
-            root = AppDomain.CurrentDomain.BaseDirectory;
+            nativeFeed = nativeSource;
+            root = nativeSource == null ? AppDomain.CurrentDomain.BaseDirectory : Path.GetDirectoryName(typeof(MainForm).Assembly.Location);
             dataRoot = Path.GetFullPath(isolatedDataDirectory ?? UserData.DefaultDirectory);
             legacyDataDirectories = isolatedDataDirectory == null ? UserData.LegacyDirectories(root) : new string[0];
             if (isolatedDataDirectory == null) UserData.ImportSettings(dataRoot, legacyDataDirectories);
@@ -86,10 +89,15 @@ namespace WiiUAchievements
             timer.Interval = 100;
             timer.Tick += Tick;
             Shown += delegate { if (startDemo) StartDemo(); else if (autoConnect) Connect(); };
-            FormClosing += delegate { connectionGeneration++; timer.Stop(); cloudTimer.Stop(); cloudTimer.Dispose(); connectionWatch.Stop(); connectionWatch.Dispose(); if (memory != null) memory.Dispose(); if (activeToast != null) activeToast.Close(); };
+            FormClosing += delegate(object sender, FormClosingEventArgs e)
+            {
+                if (NativeMode && !nativeShutdown && e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); return; }
+                connectionGeneration++; timer.Stop(); cloudTimer.Stop(); cloudTimer.Dispose(); connectionWatch.Stop(); connectionWatch.Dispose(); if (memory != null) memory.Dispose(); if (activeToast != null) activeToast.Close();
+            };
             RefreshList();
             hint = DefaultHint;
             SetStatus("Pronto al collegamento", "Avvia il gioco e carica un salvataggio, poi premi Collega Cemu.", StatusKind.Idle);
+            if (NativeMode) ConnectNative();
         }
         void LoadSettings()
         {
@@ -146,13 +154,77 @@ namespace WiiUAchievements
             player.ReadOnly = value; cemuPath.ReadOnly = value;
             PlaceFields(); Invalidate(); Kick();
         }
+        // The in-process adapter keeps sampling beside the external-reader session.
+        readonly NativeCemuFeed nativeFeed;
+        bool nativeListening, nativeShutdown;
+        bool NativeMode { get { return nativeFeed != null; } }
+
+        void ConnectNative()
+        {
+            if (nativeListening) return;
+            try
+            {
+                if (String.IsNullOrWhiteSpace(player.Text)) throw new InvalidOperationException("Inserisci un nome per il profilo locale.");
+                activeProfile = selectedGame.Profiles[0];
+                session = new GameSession { TitleId = activeProfile.TitleId, Version = activeProfile.TitleVersion,
+                    RpxHash = activeProfile.RpxHash, CemuVersion = activeProfile.CemuVersion, Pid = Process.GetCurrentProcess().Id };
+                progress = OpenProgress(session.Fingerprint);
+                engine = new AchievementEngine(rules, progress, AchievementRecognition.IncludeExistingSave);
+                nativeListening = true; recording = true; paused = false; current = null;
+                SaveSettings(); SetConnected(true); RefreshList(); timer.Start();
+                hint = "Gli obiettivi seguono la partita in Cemu. Chiudere questa finestra lascia attiva la registrazione.";
+                SetAutomaticWaiting("Avvia The Wind Waker HD EUR v0 in Cemu; menu, caricamenti e pause sospendono il rilevamento.");
+            }
+            catch (Exception ex)
+            {
+                nativeListening = false; recording = false; engine = null;
+                SetConnected(false); SetStatus("Obiettivi non attivi", ex.Message, StatusKind.Error); Log(ex.Message);
+            }
+        }
+
+        void TickNative()
+        {
+            if (!nativeListening || !recording || engine == null) return;
+            try
+            {
+                NativeCemuSample sample;
+                if (!nativeFeed.TryRead(out sample))
+                {
+                    if (!nativeFeed.IsFresh)
+                    {
+                        engine.Reset(); SetAutomaticWaiting("In attesa di nuovi fotogrammi della partita in Cemu.");
+                    }
+                    return; // Never count the same frozen frame twice.
+                }
+                if (sample.Reset) engine.Reset();
+                if (sample.State != NativeCemuState.Running || sample.Snapshot == null)
+                {
+                    engine.Reset();
+                    SetAutomaticWaiting(sample.State == NativeCemuState.Paused ? "Emulazione in pausa." : "Nessuna partita supportata attiva in Cemu.");
+                    return;
+                }
+                ProcessSample(sample.Snapshot);
+            }
+            catch (Exception ex)
+            {
+                Disconnect("Registrazione sospesa: " + ex.Message);
+                SetStatus("Obiettivi non attivi", ex.Message, StatusKind.Error);
+            }
+        }
+
+        internal void ShutdownNative()
+        {
+            nativeShutdown = true; Close(); Dispose();
+        }
+
         const string DefaultHint = "Caricamenti e selezione file: attesa e ripresa automatiche. Puoi lasciare l'app collegata.";
-        bool FieldsEditable { get { return memory == null && !demo && !connecting && !autoReconnect; } }
-        bool CanConnect { get { return !connecting && memory == null && !demo && !autoReconnect; } }
-        bool CanDisconnect { get { return memory != null || demo || autoReconnect; } }
+        bool FieldsEditable { get { return memory == null && !nativeListening && !demo && !connecting && !autoReconnect; } }
+        bool CanConnect { get { return !connecting && memory == null && !nativeListening && !demo && !autoReconnect; } }
+        bool CanDisconnect { get { return nativeListening || memory != null || demo || autoReconnect; } }
 
         async void Connect()
         {
+            if (NativeMode) { ConnectNative(); return; }
             if (connecting || memory != null || demo) return;
             int generation = ++connectionGeneration;
             connecting = true; SetConnected(true);
@@ -207,6 +279,7 @@ namespace WiiUAchievements
         }
         void Disconnect(string reason)
         {
+            nativeListening = false;
             connectionGeneration++; connecting = false; autoReconnect = false;
             // Demo unlocks live in a throwaway store and should not linger on screen.
             if (demo) progress = null;
@@ -220,6 +293,7 @@ namespace WiiUAchievements
         }
         void StartDemo()
         {
+            if (NativeMode) return;
             if (memory != null || demo || connecting) return;
             try
             {
@@ -238,11 +312,11 @@ namespace WiiUAchievements
         {
             if (!demo && engine != null && engine.WaitingForGameplay) SetAutomaticWaiting(engine.GameplayMessage);
             else if (demo) SetStatus("DEMO · simulazione", "Dati simulati. I progressi della tua partita restano separati.", StatusKind.Demo);
-            else SetStatus("Collegato · registrazione attiva", selectedGame.Title + " · " + activeProfile.Label + " · progressi locali", StatusKind.Live);
+            else SetStatus(NativeMode ? "Cemu · obiettivi attivi" : "Collegato · registrazione attiva", selectedGame.Title + " · " + activeProfile.Label + " · progressi locali", StatusKind.Live);
         }
         void TogglePause()
         {
-            if (memory == null && !demo || connecting) return;
+            if (memory == null && !nativeListening && !demo || connecting) return;
             paused = !paused; recording = !paused;
             engine.Reset(); current = null; identityCheck = DateTime.MinValue;
             if (paused)
@@ -281,6 +355,7 @@ namespace WiiUAchievements
         }
         void Tick(object sender, EventArgs e)
         {
+            if (NativeMode) { TickNative(); return; }
             if (!recording || engine == null) return;
             try
             {
@@ -301,6 +376,18 @@ namespace WiiUAchievements
                     sample = gameReader.Read(memory, guestBase);
 
                 }
+                ProcessSample(sample);
+            }
+            catch (Exception ex)
+            {
+                // Invalid samples/disconnections cannot carry an armed condition across a gap.
+                Disconnect("Sessione non disponibile: " + ex.Message);
+                autoReconnect = true;
+                SetAutomaticWaiting("In attesa della sessione Cemu supportata; ricollegamento automatico.");
+            }
+        }
+        void ProcessSample(GameSnapshot sample)
+        {
                 var awarded = engine.Update(sample);
                 if (engine.WaitingForGameplay) { SetAutomaticWaiting(engine.GameplayMessage); return; }
                 if (statusTitle == "Attesa automatica") SetRecordingStatus();
@@ -315,14 +402,6 @@ namespace WiiUAchievements
                 UpdateStats(sample);
                 PumpToasts();
                 if (!demo && awarded.Count > 0) SyncCloud();
-            }
-            catch (Exception ex)
-            {
-                // Invalid samples/disconnections cannot carry an armed condition across a gap.
-                Disconnect("Sessione non disponibile: " + ex.Message);
-                autoReconnect = true;
-                SetAutomaticWaiting("In attesa della sessione Cemu supportata; ricollegamento automatico.");
-            }
         }
         void SetAutomaticWaiting(string message)
         {
@@ -335,6 +414,7 @@ namespace WiiUAchievements
         }
         void WatchConnection()
         {
+            if (NativeMode) return;
             if (!autoReconnect || connecting || demo || memory != null || IsDisposed || Disposing) return;
             try
             {
@@ -371,7 +451,7 @@ namespace WiiUAchievements
         {
             try
             {
-                if (session != null && memory != null)
+                if (session != null && (memory != null || NativeMode))
                 {
                     IntPtr window = Process.GetProcessById(session.Pid).MainWindowHandle;
                     if (window != IntPtr.Zero) return Screen.FromHandle(window);

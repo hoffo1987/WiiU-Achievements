@@ -115,6 +115,12 @@ namespace WiiUAchievements
                 FramePacing.Reset(); ClearTileImages(); ClearLayers(); Arrange(); PlaceFields(); Kick();
             };
             Shown += delegate { introStart = Motion.Reduced ? -10 : (float)clock.Elapsed.TotalSeconds; Kick(); };
+            VisibleChanged += delegate
+            {
+                if (!NativeMode) return;
+                if (Visible) Kick();
+                else { animation.Stop(); FramePacing.End(); if (video != null) video.SetPlaying(false); }
+            };
             try { Icon = MakeIcon(); } catch (Exception) { }
             Disposed += delegate { Application.Idle -= OnIdle; if (scene != null) scene.Dispose(); FramePacing.End(); animation.Dispose(); banner.Dispose(); CloseBannerVideo(); ClearTileImages(); ClearLayers(); if (backdrop != null) backdrop.Dispose(); if (menuFrame != null) menuFrame.Dispose(); measure.Dispose(); measureBitmap.Dispose(); };
         }
@@ -187,10 +193,10 @@ namespace WiiUAchievements
                 float top = ArrangeToolbar(w, bannerRect.Bottom + 12);
                 ArrangeGrid(w, h, top);
                 float by = h - BottomH + 16;
-                float x = AddButton("connect", Kind.Primary, "Collega Cemu", "A", Pad, by, Connect, CanConnect, 0) + 10;
-                x = AddButton("disconnect", Kind.Button, "Scollega", "Y", x, by, () => Disconnect("Sessione scollegata."), CanDisconnect, 0) + 10;
-                if (CanDisconnect) AddButton("pause", Kind.Button, paused ? "Riprendi" : "Pausa", "P", x, by, TogglePause, memory != null || demo, 0);
-                else AddButton("demo", Kind.Button, "Prova demo", "X", x, by, StartDemo, CanConnect, 0);
+                float x = AddButton("connect", Kind.Primary, NativeMode ? "Attiva obiettivi" : "Collega Cemu", "A", Pad, by, Connect, CanConnect, 0) + 10;
+                x = AddButton("disconnect", Kind.Button, NativeMode ? "Disattiva" : "Scollega", "Y", x, by, () => Disconnect("Sessione scollegata."), CanDisconnect, 0) + 10;
+                if (CanDisconnect) AddButton("pause", Kind.Button, paused ? "Riprendi" : "Pausa", "P", x, by, TogglePause, memory != null || nativeListening || demo, 0);
+                else if (!NativeMode) AddButton("demo", Kind.Button, "Prova demo", "X", x, by, StartDemo, CanConnect, 0);
                 ArrangeMenu(w, h);
             }
             else ArrangeLibrary(w, h);
@@ -219,8 +225,8 @@ namespace WiiUAchievements
                 }
                 else
                 {
-                    Put("field-cemu", Kind.Field, new RectangleF(sx + 24, 124, SheetW - 48 - 112, 40), "Percorso di Cemu.exe", () => FocusField(cemuPath), FieldsEditable, 1).Box = cemuPath;
-                    AddButton("browse", Kind.Button, "Sfoglia…", null, sx + SheetW - 24 - 102, 124, Browse, FieldsEditable, 1, 40, 102);
+                    Put("field-cemu", Kind.Field, new RectangleF(sx + 24, 124, SheetW - 48 - 112, 40), "Percorso di Cemu.exe", () => FocusField(cemuPath), FieldsEditable && !NativeMode, 1).Box = cemuPath;
+                    AddButton("browse", Kind.Button, "Sfoglia…", null, sx + SheetW - 24 - 102, 124, Browse, FieldsEditable && !NativeMode, 1, 40, 102);
                     Put("field-player", Kind.Field, new RectangleF(sx + 24, 198, SheetW - 48, 40), "Profilo locale", () => FocusField(player), FieldsEditable, 1).Box = player;
                     Put("sound", Kind.Toggle, new RectangleF(sx + 24, 314, SheetW - 48, 44), "Suono di sblocco", ToggleSound, true, 1).Checked = soundOn;
                     Put("ambient", Kind.Toggle, new RectangleF(sx + 24, 362, SheetW - 48, 44), "Animazioni del banner", ToggleAmbient, true, 1).Checked = ambientOn;
@@ -244,7 +250,7 @@ namespace WiiUAchievements
                     int height = box.PreferredHeight;
                     var device = new Rectangle((int)Math.Round((r.X + 13) * scale), (int)Math.Round(r.Y * scale + (r.Height * scale - height) / 2), (int)((r.Width - 26) * scale), height);
                     if (box.Bounds != device) box.Bounds = device;
-                    box.ReadOnly = box == cemuPath || box == player ? !FieldsEditable : cloudBusy || (cloud != null && cloud.IsSignedIn);
+                    box.ReadOnly = box == cemuPath || box == player ? !FieldsEditable || (box == cemuPath && NativeMode) : cloudBusy || (cloud != null && cloud.IsSignedIn);
                     box.BackColor = box.ReadOnly ? Color.FromArgb(240, 243, 245) : Color.White;
                     if (!box.Visible) box.Visible = true;
                 }
@@ -260,7 +266,7 @@ namespace WiiUAchievements
         // ---------------------------------------------------------------- animation
         void Kick()
         {
-            if (animation.Enabled || IsDisposed) return;
+            if (animation.Enabled || IsDisposed || (NativeMode && !Visible)) return;
             lastFrame = (float)clock.Elapsed.TotalSeconds;
             FramePacing.Begin();
             animation.Start();
@@ -974,7 +980,7 @@ namespace WiiUAchievements
             DrawButton(g, widgets["browse"], t);
             Theme.Text(g, "Profilo locale", Theme.Font(14, Weight.Bold), Theme.Ink, new RectangleF(sx, 175, cw, 22));
             DrawField(g, widgets["field-player"], t);
-            Theme.Text(g, FieldsEditable ? "Ogni profilo ha progressi separati: usane uno nuovo per una nuova partita." : "Scollega Cemu o la demo per modificare percorso e profilo.",
+            Theme.Text(g, FieldsEditable ? "Ogni profilo ha progressi separati: usane uno nuovo per una nuova partita." : NativeMode ? "Disattiva gli obiettivi per cambiare profilo. La partita in Cemu può continuare." : "Scollega Cemu o la demo per modificare percorso e profilo.",
                 Theme.Font(12.5f, Weight.Regular), FieldsEditable ? style.Muted : Theme.ExperimentalInk, new RectangleF(sx, 244, cw, 40), StringAlignment.Near, StringAlignment.Near, true);
 
             Section(g, "NOTIFICHE E MOVIMENTO", sx, 290, cw);
@@ -1203,7 +1209,7 @@ namespace WiiUAchievements
                     return true;
                 case Keys.B: case Keys.Back: CloseTop(); return true;
                 case Keys.A: if (!libraryOpen && ActiveLayer == 0 && CanConnect) Connect(); return true;
-                case Keys.X: if (!libraryOpen && ActiveLayer == 0 && CanConnect) StartDemo(); return true;
+                case Keys.X: if (!NativeMode && !libraryOpen && ActiveLayer == 0 && CanConnect) StartDemo(); return true;
                 case Keys.C: if (!libraryOpen && ActiveLayer == 0) NextCategory(); return true;
                 case Keys.F: if (!libraryOpen && ActiveLayer == 0) NextChapter(); return true;
                 case Keys.S: if (!libraryOpen && ActiveLayer == 0) NextSort(); return true;

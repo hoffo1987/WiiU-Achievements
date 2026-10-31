@@ -1,5 +1,15 @@
 # Prossime attività
 
+Integrazione Cemu richiesta il 31 ottobre: completare la build Windows del fork
+e le prove live elencate in `docs/CEMU-INTEGRATION.md`. Gli hook riusano motore,
+interfaccia e progressi esistenti nel processo Cemu; non certificano nuovi offset.
+La build Windows è riuscita; il fork locale utilizzabile è
+`build-check/cemu-integrated/Cemu.exe`. Avvio, pannello nello stesso processo,
+menu iniziale di Wind Waker, chiusura e riavvio sono stati provati sul PC.
+Prossimo controllo: caricare il salvataggio e verificare uno sblocco reale,
+poi le transizioni e le notifiche fullscreen. Tenere separata l'installazione
+Cemu del Desktop fino alla validazione completa.
+
 Usare l'EXE nella directory principale. L'interfaccia mantiene loghi centrati,
 pergamena, vento, onde e cornici semplici senza deformazioni. Le immagini pubbliche
 si rigenerano con `tools/render-docs.ps1`, usando soltanto dati sintetici.

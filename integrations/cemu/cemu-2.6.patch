@@ -1,0 +1,182 @@
+diff --git a/README.md b/README.md
+index dfd3579..4372e34 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,16 @@
++# Cemu 2.6 with Wii U Achievements
++
++Development fork with the existing Wii U Achievements engine and interface
++hosted **inside the Cemu process**. Open **Tools → Wii U Achievements**.
++See [setup, build and validation limits](WIIU-ACHIEVEMENTS.md).
++
++[Windows build and native smoke checks passed](https://github.com/hoffo1987/Cemu-WiiUAchievements/actions/runs/41240085236).
++PC smoke checks include the real Wind Waker HD EUR v0 title/menu and full Cemu
++restart. In-world save/load/award tests remain pending. The set still has 53
++experimental detectors and 40 unimplemented targets.
++
++---
++
+ # **Cemu - Wii U emulator**
+ 
+ [![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 7947132..3454238 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -51,6 +51,9 @@ add_subdirectory(imgui)
+ add_subdirectory(resource)
+ add_subdirectory(asm)
+ 
++# Local Wii U Achievements extension; source is staged by the project script.
++include(WiiUAchievements/CMakeLists.txt)
++
+ add_executable(CemuBin
+ 	main.cpp
+ 	mainLLE.cpp
+diff --git a/src/Cafe/CafeSystem.cpp b/src/Cafe/CafeSystem.cpp
+index 1bf3755..767d080 100644
+--- a/src/Cafe/CafeSystem.cpp
++++ b/src/Cafe/CafeSystem.cpp
+@@ -16,6 +16,7 @@
+ #include "Common/cpu_features.h"
+ #include "input/InputManager.h"
+ #include "Cafe/CafeSystem.h"
++#include "WiiUAchievements/WiiUAchievementsHost.h"
+ #include "Cafe/TitleList/TitleList.h"
+ #include "Cafe/TitleList/GameInfo.h"
+ #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
+@@ -843,6 +844,7 @@ namespace CafeSystem
+ 		for(auto& module : s_iosuModules)
+ 			module->TitleStart();
+ 		cemu_initForGame();
++		WiiUAchievements::TitleStarted();
+ 		// enter scheduler
+ 		if (ActiveSettings::GetCPUMode() == CPUMode::MulticoreRecompiler && !LaunchSettings::ForceInterpreter())
+ 			coreinit::OSSchedulerBegin(3);
+@@ -987,6 +989,7 @@ namespace CafeSystem
+ 	{
+ 		if(!sSystemRunning)
+ 			return;
++		WiiUAchievements::TitleStopped();
+         coreinit::OSSchedulerEnd();
+         Latte_Stop();
+         // reset Cafe OS userspace modules
+diff --git a/src/Cafe/HW/Espresso/Debugger/Debugger.cpp b/src/Cafe/HW/Espresso/Debugger/Debugger.cpp
+index 37e374d..e19ac6f 100644
+--- a/src/Cafe/HW/Espresso/Debugger/Debugger.cpp
++++ b/src/Cafe/HW/Espresso/Debugger/Debugger.cpp
+@@ -1,5 +1,6 @@
+ #include "gui/guiWrapper.h"
+ #include "Debugger.h"
++#include "WiiUAchievements/WiiUAchievementsHost.h"
+ #include "Cafe/OS/RPL/rpl_structs.h"
+ #include "Cemu/PPCAssembler/ppcAssembler.h"
+ #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
+@@ -561,6 +562,7 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
+ 
+ 	// handle breakpoints
+ 	debuggerState.debugSession.isTrapped = true;
++	WiiUAchievements::SetPaused(true);
+ 	debuggerState.debugSession.debuggedThreadMPTR = MEMPTR<OSThread_t>(coreinit::OSGetCurrentThread()).GetMPTR();
+ 	debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
+ 	debuggerState.debugSession.hCPU = hCPU;
+@@ -610,6 +612,7 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
+ 	}
+ 
+ 	debuggerState.debugSession.isTrapped = false;
++	WiiUAchievements::SetPaused(false);
+ 	debuggerState.debugSession.hCPU = nullptr;
+ 	debuggerWindow_updateViewThreadsafe2();
+ 	debuggerWindow_notifyRun();
+@@ -647,4 +650,4 @@ void debugger_addParserSymbols(class ExpressionParser& ep)
+ 
+ 	for (sint32 i = 0; i < 32; i++)
+ 		ep.AddConstant(fmt::format("r{}", i), debuggerState.debugSession.ppcSnapshot.gpr[i]);
+-}
+\ No newline at end of file
++}
+diff --git a/src/Cafe/OS/libs/gx2/GX2.cpp b/src/Cafe/OS/libs/gx2/GX2.cpp
+index 593d31f..a465240 100644
+--- a/src/Cafe/OS/libs/gx2/GX2.cpp
++++ b/src/Cafe/OS/libs/gx2/GX2.cpp
+@@ -6,6 +6,7 @@
+ #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+ #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+ #include "Cafe/CafeSystem.h"
++#include "WiiUAchievements/WiiUAchievementsHost.h"
+ #include "Cafe/HW/Latte/Core/LattePM4.h"
+ 
+ #include "GX2_Command.h"
+@@ -48,6 +49,7 @@ uint64 lastSwapTime = 0;
+ 
+ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
+ {
++	WiiUAchievements::FrameSubmitted();
+ 	cemuLog_log(LogType::GX2, "GX2SwapScanBuffers()");
+ 
+ 	bool isPokken = false;
+diff --git a/src/gui/MainWindow.cpp b/src/gui/MainWindow.cpp
+index 4801706..5840dd0 100644
+--- a/src/gui/MainWindow.cpp
++++ b/src/gui/MainWindow.cpp
+@@ -33,6 +33,7 @@
+ #include "gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
+ 
+ #include "Cafe/CafeSystem.h"
++#include "WiiUAchievements/WiiUAchievementsHost.h"
+ 
+ #include "util/helpers/SystemException.h"
+ #include "gui/DownloadGraphicPacksWindow.h"
+@@ -112,6 +113,7 @@ enum
+ 	MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER,
+ 	MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER,
+ 	MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES,
++	MAINFRAME_MENU_ID_TOOLS_WIIU_ACHIEVEMENTS,
+ 	// cpu
+ 	// cpu->timer speed
+ 	MAINFRAME_MENU_ID_TIMER_SPEED_1X = 20700,
+@@ -189,6 +191,7 @@ EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
+ EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
+ EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
+ EVT_MENU(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, MainWindow::OnToolsInput)
++EVT_MENU(MAINFRAME_MENU_ID_TOOLS_WIIU_ACHIEVEMENTS, MainWindow::OnToolsInput)
+ // cpu menu
+ EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
+ EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
+@@ -289,6 +292,7 @@ MainWindow::MainWindow()
+ 	CafeSystem::SetImplementation(this);
+ 
+ 	RecreateMenu();
++	WiiUAchievements::Initialize();
+ 	SetClientSize(1280, 720);
+ 	SetIcon(wxICON(M_WND_ICON128));
+ 
+@@ -431,6 +435,7 @@ void MainWindow::OnClose(wxCloseEvent& event)
+ 	event.Skip();
+ 
+     CafeSystem::Shutdown();
++	WiiUAchievements::Shutdown();
+ 	DestroyCanvas();
+ }
+ 
+@@ -1465,6 +1470,9 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
+ 	const auto id = event.GetId();
+ 	switch (id)
+ 	{
++	case MAINFRAME_MENU_ID_TOOLS_WIIU_ACHIEVEMENTS:
++		WiiUAchievements::Show();
++		break;
+ 	case MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER:
+ 	{
+ 		if (m_toolWindow)
+@@ -2164,6 +2172,10 @@ void MainWindow::RecreateMenu()
+ 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
+ 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
+ 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, _("&Emulated USB Devices"));
++#ifdef _WIN32
++	toolsMenu->AppendSeparator();
++	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_WIIU_ACHIEVEMENTS, "Wii U &Achievements");
++#endif
+ 
+ 	m_menuBar->Append(toolsMenu, _("&Tools"));
+ 
