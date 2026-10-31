@@ -11,7 +11,10 @@ Il nuovo lettore osserva lo stato del mondo prima e dopo la finestra dei
 progressi, sempre con `host = guestBase + guest` e accesso read-only:
 
 - guest `0x104741E4`, 26 byte: scena corrente, prossima scena e richiesta di
-  transizione (`+0x18`, solo 0/1); i nomi hanno 8 byte e terminazione controllata;
+  transizione (`+0x18`, solo 0/1); i nomi hanno 8 byte e terminazione controllata.
+  I byte dopo il terminatore si ignorano: il gioco scrive un nome più corto sopra
+  quello precedente senza azzerare il resto (osservato dal vivo il 2026-10-31:
+  `sea\0us\0\0` uscendo da una casa dell'Isola Primula);
 - guest `0x10474BDC`, 16 byte: puntatore principale di Link e copia a `+8`,
   controllati per uguaglianza, allineamento e intervallo guest;
 - scene `Name` (selezione file) e `sea_T` (sfondo titolo) sono escluse anche se
