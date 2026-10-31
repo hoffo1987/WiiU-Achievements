@@ -118,7 +118,7 @@ class UiTests
                 RenderScroll(form, graphics, end * i / (times.Length - 1));
                 times[i] = watch.Elapsed.TotalMilliseconds;
             }
-            Check(((IDictionary)Get(form, "tileImages")).Count <= 48, "Long scrolling keeps the native bitmap cache bounded");
+            Check(((IDictionary)Get(form, "tileImages")).Count <= (int)Get(form, "tileCacheBudget") && (int)Get(form, "tileCacheBudget") <= 400, "Long scrolling keeps the native bitmap cache within its memory budget");
             var gridNow = (RectangleF)Get(form, "gridRect");
             int inView = ((IEnumerable)Get(form, "visible")).Cast<object>().Count(v => Get(v, "Achievement") != null && ((RectangleF)Get(v, "Bounds")).IntersectsWith(gridNow));
             Check((int)Get(form, "tileCacheBudget") >= inView * 2, "Card cache budget covers twice the cards in view (fullscreen/ultrawide)");

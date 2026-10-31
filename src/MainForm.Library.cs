@@ -11,7 +11,7 @@ namespace WiiUAchievements
     {
         bool libraryOpen;
         float libraryScroll;
-        RectangleF libraryGridRect;
+        RectangleF libraryGridRect, libraryArtRect;
 
         void ToggleLibrary()
         {
@@ -52,12 +52,13 @@ namespace WiiUAchievements
                     () => { try { SelectGame(game); } catch (Exception ex) { Log("Gioco non aperto: " + ex.Message); } },
                     game.Available && (game == selectedGame || CanConnect), 0);
                 tile.Checked = game == selectedGame;
+                if (game == selectedGame) libraryArtRect = new RectangleF(bounds.X, bounds.Y - 4, bounds.Width, Math.Max(140, cardHeight * 0.48f) + 6);
                 tile.Help = game.Description + (game.Available ? " " + String.Join("; ", game.Profiles.Select(p => p.Label + ", Cemu " + p.CemuVersion)) : " Non disponibile.");
                 if (game.Available && game != selectedGame && !CanConnect) tile.Help += " Scollega la sessione prima di cambiare gioco.";
             }
             AddButton("library-back", Kind.Button, "Obiettivi", "B", Pad, height - BottomH + 16, CloseLibrary, true, 0);
         }
-        void DrawLibrary(Graphics g, float time)
+        void DrawLibrary(Graphics g, RectangleF clip, float time)
         {
             var style = Style;
             Theme.GridIcon(g, new RectangleF(Pad + 4, TopH + 27, 24, 24), style.AccentDark);
@@ -79,7 +80,7 @@ namespace WiiUAchievements
             foreach (var game in GameCatalog.Games)
             {
                 var widget = widgets["game:" + game.Id];
-                if (!libraryGridRect.IntersectsWith(widget.Bounds)) { index++; continue; }
+                if (!libraryGridRect.IntersectsWith(widget.Bounds) || !clip.IntersectsWith(Theme.Inflate(widget.Bounds, 24, 24))) { index++; continue; }
                 float appear = Motion.Reduced ? 1 : Theme.EaseOut((time - introStart - index++ * 0.06f) / 0.32f);
                 if (appear <= 0) continue;
                 var cardState = g.Save();

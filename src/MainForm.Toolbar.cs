@@ -84,13 +84,42 @@ namespace WiiUAchievements
             string indexed;
             return searchIndex.TryGetValue(a.Id, out indexed) ? indexed : SearchKey(a.Title);
         }
-        IEnumerable<Achievement> CategoryRules() { return Scoped(true, true, true); }
+        // Layout runs on every frame, so the catalog query is remembered until something it
+        // depends on changes (rules, progress, filters, order or search). This keeps animation
+        // frames free of large allocations and the garbage collections they cause.
+        string catalogKey;
+        List<Achievement> catalogScoped, catalogFiltered, chapterSource;
+        List<string> chapterList;
+        string wordsText;
+        string[] wordsCache = new string[0];
+        string CatalogKey()
+        {
+            int unlocked = 0;
+            if (progress != null) foreach (var a in rules) if (!a.IsPlanned && progress.Contains(a.Id)) unlocked++;
+            return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(rules) + "|" + (progress == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(progress)) + "|" +
+                unlocked + "|" + filter + "|" + categoryFilter + "|" + chapterFilter + "|" + sortMode + "|" + rarityFilter + "|" + detectionFilter + "|" + iconFilter + "|" + search.Text;
+        }
+        void RefreshCatalog()
+        {
+            string key = CatalogKey();
+            if (key == catalogKey) return;
+            catalogScoped = Scoped(true, true, true).ToList();
+            catalogFiltered = FilterAndSort(catalogScoped);
+            catalogKey = key;
+        }
+        IEnumerable<Achievement> CategoryRules() { RefreshCatalog(); return catalogScoped; }
+        string[] QueryWords()
+        {
+            string text = search.Text;
+            if (text != wordsText) { wordsText = text; wordsCache = SearchWords(text.Trim()); }
+            return wordsCache;
+        }
         // Rules after category, chapter, the extra filters and search; the status tabs count from
         // here. A menu counts its own options with its own filter left out.
         IEnumerable<Achievement> Scoped(bool byCategory, bool byChapter, bool byMore)
         {
             var chapters = Chapters();
-            string[] words = SearchWords(Query);
+            string[] words = QueryWords();
             return rules.Where(a => (!byCategory || categoryFilter == 0 || a.Category == AchievementSet.Categories[categoryFilter - 1]) &&
                 (!byChapter || chapterFilter == 0 || chapterFilter > chapters.Count || a.Chapter == chapters[chapterFilter - 1]) &&
                 (!byMore || MoreMatches(a, -1)) &&
@@ -103,11 +132,17 @@ namespace WiiUAchievements
                 (skip == 1 || detectionFilter == 0 || (detectionFilter == 1 ? !a.IsPlanned && !a.Experimental : detectionFilter == 2 ? !a.IsPlanned && a.Experimental : a.IsPlanned)) &&
                 (skip == 2 || iconFilter == 0 || arts[a.Id].HasIcon == (iconFilter == 1));
         }
-        List<string> Chapters() { return rules.Select(a => a.Chapter).Distinct().OrderBy(c => c, StringComparer.Ordinal).ToList(); }
-        bool Unlocked(Achievement a) { return !a.IsPlanned && progress != null && progress.Contains(a.Id); }
-        List<Achievement> Filtered()
+        List<string> Chapters()
         {
-            var items = CategoryRules().Where(a => filter == 0 || (filter == 3 ? a.IsPlanned : !a.IsPlanned && Unlocked(a) == (filter == 1)));
+            if (!ReferenceEquals(chapterSource, rules)) { chapterSource = rules; chapterList = rules.Select(a => a.Chapter).Distinct().OrderBy(c => c, StringComparer.Ordinal).ToList(); }
+            return chapterList;
+        }
+        bool Unlocked(Achievement a) { return !a.IsPlanned && progress != null && progress.Contains(a.Id); }
+        // The shown list (a shared, read-only result: callers never modify it).
+        List<Achievement> Filtered() { RefreshCatalog(); return catalogFiltered; }
+        List<Achievement> FilterAndSort(List<Achievement> scoped)
+        {
+            var items = scoped.Where(a => filter == 0 || (filter == 3 ? a.IsPlanned : !a.IsPlanned && Unlocked(a) == (filter == 1)));
             switch (sortMode)
             {
                 case 1: items = items.OrderByDescending(a => (int)a.Rarity); break;

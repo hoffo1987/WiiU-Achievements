@@ -13,6 +13,8 @@ this does not authorize unrelated future external actions. No local ZIP is neede
 
 # Start here — handoff for another AI or developer
 
+**Fixed window and performance (2026-10-31):** fixed 1120×840 logical window (no maximise), frame pacing in `FramePacing.cs`, cached video/parchment/cards and a frozen page under panels. See the latest `docs/VALIDATION.md` record.
+
 **Integrated main (2026-10-31):** the UI redesign below and the complete
 catalog/medal review further below are combined. Current UI facts are those of
 the redesign entry and `docs/UI.md`: one toolbar with tabs, search, Categoria/

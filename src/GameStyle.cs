@@ -225,10 +225,30 @@ namespace WiiUAchievements
             }
             g.InterpolationMode = interpolation;
         }
+        // Texture brushes are slow (a full settings panel took ~20 ms per frame): each surface
+        // size keeps its parchment as a ready bitmap, copied 1:1 afterwards. The device scale is
+        // rounded to quarter steps so a panel zooming in briefly reuses the same picture.
         public void Parchment(Graphics g, RectangleF r, float radius, float alpha)
         {
-            if (!Themed || alpha <= 0) return;
-            using (var path = radius > 0 ? Theme.Round(r, radius) : Rect(r)) Parchment(g, path, alpha);
+            if (!Themed || alpha <= 0 || r.Width < 1 || r.Height < 1 || Load("ui/parchment.png") == null) return;
+            float scale = (float)Math.Max(0.25, Math.Round(DeviceScale(g) * 4) / 4);
+            int width = (int)Math.Ceiling(r.Width * scale), height = (int)Math.Ceiling(r.Height * scale);
+            string key = string.Format(System.Globalization.CultureInfo.InvariantCulture, "parchment|{0}x{1}|{2:0.0}|{3}", width, height, radius, (int)Math.Round(alpha * 40));
+            Bitmap surface;
+            if (!scaled.TryGetValue(key, out surface))
+            {
+                if (scaled.Count >= 160) { foreach (var old in scaled.Values) old.Dispose(); scaled.Clear(); }
+                surface = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
+                using (var b = Graphics.FromImage(surface))
+                {
+                    b.SmoothingMode = SmoothingMode.AntiAlias; b.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    b.ScaleTransform(scale, scale);
+                    var area = new RectangleF(0, 0, r.Width, r.Height);
+                    using (var path = radius > 0 ? Theme.Round(area, radius) : Rect(area)) Parchment(b, path, alpha);
+                }
+                scaled[key] = surface;
+            }
+            Blit(g, surface, r.X, r.Y, scale);
         }
         static GraphicsPath Rect(RectangleF r) { var p = new GraphicsPath(); p.AddRectangle(r); return p; }
 

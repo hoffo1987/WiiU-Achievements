@@ -66,6 +66,7 @@ namespace WiiUAchievements
             if (b.Y < gridRect.Y + 8) scrollTarget -= gridRect.Y + 12 - b.Y;
             else if (b.Bottom > gridRect.Bottom - 8) scrollTarget += b.Bottom - gridRect.Bottom + 14;
             if (focusVisible) focused = tile;
+            InvalidateScene();
         }
 
         void DrawDialog(Graphics g, float t)

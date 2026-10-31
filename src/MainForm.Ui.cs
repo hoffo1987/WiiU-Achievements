@@ -103,14 +103,40 @@ namespace WiiUAchievements
             cloudEmail.AccessibleName = "Email account cloud"; cloudPassword.AccessibleName = "Password account cloud";
             cloudProject.AccessibleName = "Project ID Firebase"; cloudApiKey.AccessibleName = "Web API key Firebase";
             cloudPassword.UseSystemPasswordChar = true;
-            animation.Interval = 15;
+            // 10 ms is the shortest WinForms timer; each tick then waits for the next display frame.
+            animation.Interval = 10;
             animation.Tick += Animate;
-            Activated += delegate { Kick(); };
+            Application.Idle += OnIdle;
+            Activated += delegate { FramePacing.Reset(); Kick(); };
             Deactivate += delegate { Kick(); };
-            Resize += delegate { ClearTileImages(); ClearLayers(); Arrange(); PlaceFields(); Kick(); };
+            Resize += delegate
+            {
+                if (WindowState == FormWindowState.Maximized) { WindowState = FormWindowState.Normal; return; }
+                FramePacing.Reset(); ClearTileImages(); ClearLayers(); Arrange(); PlaceFields(); Kick();
+            };
             Shown += delegate { introStart = Motion.Reduced ? -10 : (float)clock.Elapsed.TotalSeconds; Kick(); };
             try { Icon = MakeIcon(); } catch (Exception) { }
-            Disposed += delegate { animation.Dispose(); banner.Dispose(); CloseBannerVideo(); ClearTileImages(); ClearLayers(); if (backdrop != null) backdrop.Dispose(); if (menuFrame != null) menuFrame.Dispose(); measure.Dispose(); measureBitmap.Dispose(); };
+            Disposed += delegate { Application.Idle -= OnIdle; if (scene != null) scene.Dispose(); FramePacing.End(); animation.Dispose(); banner.Dispose(); CloseBannerVideo(); ClearTileImages(); ClearLayers(); if (backdrop != null) backdrop.Dispose(); if (menuFrame != null) menuFrame.Dispose(); measure.Dispose(); measureBitmap.Dispose(); };
+        }
+        // One fixed window: the layout is designed for 1120×840 logical pixels (three card columns,
+        // two full card rows under the banner and toolbar). It cannot be resized or maximised.
+        // On screens too small for it at the desktop DPI, the whole interface is drawn smaller.
+        const float WindowW = 1120, WindowH = 840;
+        void FixWindowSize()
+        {
+            FormBorderStyle = FormBorderStyle.FixedSingle; MaximizeBox = false;
+            var frame = SizeFromClientSize(Size.Empty);
+            Rectangle area;
+            try { area = Screen.FromPoint(Cursor.Position).WorkingArea; } catch (Exception) { area = Screen.PrimaryScreen.WorkingArea; }
+            float fit = Math.Min((area.Width - frame.Width) / WindowW, (area.Height - frame.Height) / WindowH);
+            if (fit < scale) scale = Math.Max(0.6f, (float)Math.Floor(fit * 20) / 20);
+            ClientSize = new Size((int)Math.Round(WindowW * scale), (int)Math.Round(WindowH * scale));
+        }
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_SYSCOMMAND = 0x0112, SC_MAXIMIZE = 0xF030;
+            if (m.Msg == WM_SYSCOMMAND && ((int)m.WParam & 0xFFF0) == SC_MAXIMIZE) return;
+            base.WndProc(ref m);
         }
         static Icon MakeIcon()
         {
@@ -236,6 +262,7 @@ namespace WiiUAchievements
         {
             if (animation.Enabled || IsDisposed) return;
             lastFrame = (float)clock.Elapsed.TotalSeconds;
+            FramePacing.Begin();
             animation.Start();
         }
         static bool Step(ref float value, float target, float delta)
@@ -248,7 +275,40 @@ namespace WiiUAchievements
         {
             return Rectangle.FromLTRB((int)Math.Floor(r.Left * scale) - 2, (int)Math.Floor(r.Top * scale) - 2, (int)Math.Ceiling(r.Right * scale) + 2, (int)Math.Ceiling(r.Bottom * scale) + 2);
         }
-        void Animate(object sender, EventArgs e)
+        void Animate(object sender, EventArgs e) { RunFrame(); }
+        // While animating and with no input waiting, frames run back to back, each paced by the
+        // compositor; the timer covers the rest (and polls for new video frames).
+        void OnIdle(object sender, EventArgs e)
+        {
+            for (int guard = 0; guard < 2000 && animation.Enabled && !IsDisposed && FramePacing.Available && !FramePacing.MessagePending(); guard++)
+                if (!RunFrame()) break;
+        }
+        // One animation step: update, paint what changed, then wait for it to be presented.
+        // Returns true when a presented frame was waited for.
+        bool RunFrame()
+        {
+            if (tickLog != null) tickLog.Add(clock.Elapsed.TotalMilliseconds);
+            var work = Stopwatch.StartNew();
+            frameDirty = false;
+            try { AnimateFrame(); }
+            finally { animateMs = work.Elapsed.TotalMilliseconds; }
+            if (!frameDirty || !Visible || WindowState == FormWindowState.Minimized || !IsHandleCreated) return false;
+            var step = Stopwatch.StartNew();
+            inFrame = true;
+            try { Update(); } finally { inFrame = false; }
+            updateMs = step.Elapsed.TotalMilliseconds; step.Restart();
+            bool paced = FramePacing.WaitForFrame();
+            waitMs = step.Elapsed.TotalMilliseconds;
+            if (frameDetails != null) frameDetails.Add(new[] { clock.Elapsed.TotalMilliseconds, animateMs, updateMs, waitMs, paintMs });
+            return paced;
+        }
+        double updateMs, waitMs;
+        List<double> tickLog; // set by diagnostics and tests to record every animation tick
+        List<double[]> frameDetails; // diagnostics: end time, animate, update, wait and paint ms
+        bool frameDirty, inFrame;
+        void Dirty(Rectangle r) { Invalidate(r); frameDirty = true; }
+        void Dirty() { Invalidate(); frameDirty = true; }
+        void AnimateFrame()
         {
             float now = (float)clock.Elapsed.TotalSeconds, dt = Math.Max(0.001f, Math.Min(0.05f, now - lastFrame));
             lastFrame = now;
@@ -297,6 +357,7 @@ namespace WiiUAchievements
             if (nr != shownRatio) { shownRatio = nr; dirty.Add(Theme.Inflate(bannerRect, 22, 22)); }
             float rupees = current == null ? 0 : current.Rupees;
             if (shownRupees < 0) shownRupees = rupees;
+            if (scrolled || nr != ratio) InvalidateScene();
             float nrp = Motion.Reduced ? rupees : Theme.Approach(shownRupees, rupees, dt, 7);
             if (Math.Abs(nrp - rupees) < 0.5f) nrp = rupees;
             if (nrp != shownRupees) { shownRupees = nrp; dirty.Add(Theme.Inflate(bannerRect, 22, 22)); }
@@ -313,12 +374,12 @@ namespace WiiUAchievements
             var playing = BannerVideo;
             if (playing != null) playing.SetPlaying(ambient);
             if (ambient) ambientTime += dt;
-            if (busy) { Invalidate(); return; }
+            if (busy) { Dirty(); return; }
             // One paint covers the bounding box of everything invalidated: while the grid
             // scrolls, the banner waits instead of stretching the box over the whole window.
             if (scrolled) dirty.Add(gridBand);
             bool idle = dirty.Count == 0;
-            foreach (var r in dirty) Invalidate(Device(r));
+            foreach (var r in dirty) Dirty(Device(r));
             if (scrolled) return;
             if (ambient)
             {
@@ -327,19 +388,21 @@ namespace WiiUAchievements
                 if (frames < 0 || frames != shownVideoFrame || libraryOpen)
                 {
                     shownVideoFrame = frames;
-                    Invalidate(Device(Theme.Inflate(libraryOpen ? libraryGridRect : bannerRect, 4, 4)));
+                    Dirty(Device(libraryOpen ? Theme.Inflate(libraryArtRect, 2, 2) : new RectangleF(bannerRect.X, bannerRect.Y, bannerRect.Width, HeroH)));
                 }
                 idle = false;
             }
             // Only a connection in progress animates its status (a turning arc); steady states stay still.
             if (statusKind == StatusKind.Busy)
             {
-                Invalidate(Device(Theme.Inflate(statusPill, 4, 4)));
-                if (!libraryOpen) Invalidate(Device(StatusIconRect()));
+                Dirty(Device(Theme.Inflate(statusPill, 4, 4)));
+                if (!libraryOpen) Dirty(Device(StatusIconRect()));
                 idle = false;
             }
-            if (focusVisible && focused != null && focused.Visible && ContainsFocus) { Invalidate(Device(Theme.Inflate(focused.Bounds, 16, 16))); idle = false; }
-            if (idle) animation.Stop();
+            if (focusVisible && focused != null && focused.Visible && ContainsFocus) { Dirty(Device(Theme.Inflate(focused.Bounds, 16, 16))); idle = false; }
+            // Quiet frames prepare upcoming cards, a few milliseconds at a time.
+            if (celebrations.Count == 0 && now - introStart > IntroSpan && sheet <= 0 && dialog <= 0 && PrewarmTiles(now, 4)) idle = false;
+            if (idle) { animation.Stop(); FramePacing.End(); }
         }
         void Celebrate(Achievement a) { celebrations[a.Id] = (float)clock.Elapsed.TotalSeconds; Kick(); }
         float Celebration(string id, float t)
@@ -358,10 +421,15 @@ namespace WiiUAchievements
 
         // ---------------------------------------------------------------- painting
         protected override void OnPaintBackground(PaintEventArgs e) { }
+        // Frame timings, kept for the regression suite and diagnostics (no logging).
+        readonly Stopwatch frameWatch = new Stopwatch();
+        double paintMs, animateMs;
         protected override void OnPaint(PaintEventArgs e)
         {
             var c = e.ClipRectangle;
+            frameWatch.Restart();
             Render(e.Graphics, new RectangleF(c.X / scale, c.Y / scale, c.Width / scale, c.Height / scale));
+            paintMs = frameWatch.Elapsed.TotalMilliseconds;
         }
         // Used by the window and by the --preview rendering check of our own UI.
         public void SavePreview(string path)
@@ -372,16 +440,53 @@ namespace WiiUAchievements
                 bitmap.Save(path, ImageFormat.Png);
             }
         }
+        // Under the settings sheet and the detail card the page is frozen: it is drawn once into a
+        // device-size picture and copied, so opening and animating a panel costs the panel alone.
+        // sceneVersion moves whenever page content changes (status, progress, log, scroll).
+        Bitmap scene;
+        int sceneVersion, sceneBuilt = -1;
+        void InvalidateScene() { sceneVersion++; }
         void Render(Graphics g, RectangleF clip)
         {
             Arrange();
             float t = (float)clock.Elapsed.TotalSeconds;
+            if (sheet > 0 || (dialog > 0 && detail != null))
+            {
+                var size = ClientSize;
+                if (scene == null || scene.Size != size || sceneBuilt != sceneVersion)
+                {
+                    if (scene == null || scene.Size != size)
+                    {
+                        if (scene != null) scene.Dispose();
+                        scene = new Bitmap(Math.Max(1, size.Width), Math.Max(1, size.Height), PixelFormat.Format32bppPArgb);
+                    }
+                    using (var page = Graphics.FromImage(scene)) RenderPage(page, new RectangleF(0, 0, W, H), t);
+                    sceneBuilt = sceneVersion;
+                }
+                var mode = g.CompositingMode;
+                g.CompositingMode = CompositingMode.SourceCopy; g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                var area = Rectangle.Intersect(Device(clip), new Rectangle(0, 0, size.Width, size.Height));
+                if (area.Width > 0 && area.Height > 0) g.DrawImage(scene, area, area.X, area.Y, area.Width, area.Height, GraphicsUnit.Pixel);
+                g.CompositingMode = mode; g.InterpolationMode = InterpolationMode.Bilinear;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.ScaleTransform(scale, scale);
+                if (sheet > 0) DrawSheet(g, t);
+                if (dialog > 0 && detail != null) DrawDialog(g, t);
+                return;
+            }
+            if (scene != null) { scene.Dispose(); scene = null; }
+            RenderPage(g, clip, t);
+        }
+        void RenderPage(Graphics g, RectangleF clip, float t)
+        {
             DrawBackdrop(g, clip);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.ScaleTransform(scale, scale);
-            if (libraryOpen) DrawLibrary(g, t);
+            if (libraryOpen) DrawLibrary(g, clip, t);
             else
             {
                 if (clip.IntersectsWith(gridRect)) DrawGrid(g, clip, t);
@@ -394,8 +499,6 @@ namespace WiiUAchievements
             if (clip.IntersectsWith(new RectangleF(0, 0, W, TopH + 10))) DrawTopBar(g, t);
             if (drawer > 0) DrawDrawer(g, t);
             if (clip.IntersectsWith(new RectangleF(0, H - BottomH - 12, W, BottomH + 12))) DrawBottomBar(g, t, clip.Bottom > H - BottomH + 12);
-            if (sheet > 0) DrawSheet(g, t);
-            if (dialog > 0 && detail != null) DrawDialog(g, t);
         }
         void DrawBackdrop(Graphics g, RectangleF clip)
         {
@@ -471,11 +574,18 @@ namespace WiiUAchievements
                 using (var brush = new LinearGradientBrush(new RectangleF(0, TopH - 1, w, 10), Color.FromArgb(28, 20, 44, 64), Color.FromArgb(0, 20, 44, 64), 90f)) b.FillRectangle(brush, 0, TopH, w, 8);
                 using (var pen = new Pen(style.BarLine)) b.DrawLine(pen, 0, TopH - 0.5f, w, TopH - 0.5f);
                 style.DecorateTopBar(b, w, TopH);
+                // Avatar and the brand (resampled from a large source) are static: they live in
+                // the cached bar instead of being scaled again on every repaint.
+                var face = new RectangleF(Pad, 20, 40, 40);
+                using (var brush = new SolidBrush(Color.FromArgb(30, 20, 44, 64))) b.FillEllipse(brush, Theme.Inflate(face, 3, 3).X, face.Y - 1, face.Width + 6, face.Height + 6);
+                using (var brush = new SolidBrush(Color.White)) b.FillEllipse(brush, Theme.Inflate(face, 3, 3));
+                Theme.Avatar(b, face);
+                // Symmetrical space is reserved for the brand, independent of profile/status text.
+                if (!BrandArt.DrawLogo(b, new RectangleF(w / 2 - 104, 10, 208, 58)))
+                    Theme.Text(b, "Wii U Achievements", Theme.Font(20, Weight.Heavy), Theme.Ink,
+                        new RectangleF(w / 2 - 140, 20, 280, 40), StringAlignment.Center, StringAlignment.Center, false);
             });
             var avatar = new RectangleF(Pad, 20, 40, 40);
-            using (var b = new SolidBrush(Color.FromArgb(30, 20, 44, 64))) g.FillEllipse(b, Theme.Inflate(avatar, 3, 3).X, avatar.Y - 1, avatar.Width + 6, avatar.Height + 6);
-            using (var b = new SolidBrush(Color.White)) g.FillEllipse(b, Theme.Inflate(avatar, 3, 3));
-            Theme.Avatar(g, avatar);
             // The status ring around the avatar repeats the connection state with a shape of its own.
             DrawAvatarRing(g, Theme.Inflate(avatar, 5, 5), t);
             string name = String.IsNullOrWhiteSpace(player.Text) ? "Profilo senza nome" : player.Text.Trim();
@@ -487,10 +597,6 @@ namespace WiiUAchievements
             Theme.Text(g, StatusShort(), Theme.Font(12.5f, Weight.Bold), Theme.Mix(StatusColor(), Theme.Ink, 0.45f),
                 new RectangleF(statusPill.X + 14, statusPill.Y, profileWidth - 14, 20));
 
-            // Symmetrical space is reserved for the brand, independent of profile/status text.
-            if (!BrandArt.DrawLogo(g, new RectangleF(w / 2 - 104, 10, 208, 58)))
-                Theme.Text(g, "Wii U Achievements", Theme.Font(20, Weight.Heavy), Theme.Ink,
-                    new RectangleF(w / 2 - 140, 20, 280, 40), StringAlignment.Center, StringAlignment.Center, false);
             DrawButton(g, widgets["games"], t);
             DrawIconButton(g, widgets["settings"], t, (gg, r, c) => Theme.Gear(gg, r, c));
             var log = widgets["log"];
@@ -1113,11 +1219,13 @@ namespace WiiUAchievements
 
         // ---------------------------------------------------------------- actions
         void OpenCloudPage() { cloudPage = true; focused = hovered = null; Arrange(); PlaceFields(); Invalidate(); Kick(); }
-        void OpenSheet() { menu = null; menuOpen = menuTarget = 0; cloudPage = false; sheetTarget = 1; hovered = null; focused = null; PlaceSearch(); Kick(); }
+        // Panels freeze the page as it is now, without the hover of the card or button just used.
+        void SettleHover() { foreach (var w in widgets.Values) { w.Hover = 0; w.Press = 0; } hovered = pressed = null; InvalidateScene(); }
+        void OpenSheet() { SettleHover(); menu = null; menuOpen = menuTarget = 0; cloudPage = false; sheetTarget = 1; hovered = null; focused = null; PlaceSearch(); Kick(); }
         void CloseSheet() { if (cloudPage) { cloudPage = false; cloudPassword.Clear(); Arrange(); PlaceFields(); Invalidate(); return; } cloudPassword.Clear(); sheetTarget = 0; focused = null; PlaceFields(); Kick(); }
         void ToggleDrawer() { CloseMenu(); drawerTarget = drawerTarget > 0 ? 0 : 1; if (drawerTarget > 0) { unreadLogs = 0; logScroll = 0; } Kick(); }
         void CloseDrawer() { drawerTarget = 0; Kick(); }
-        void OpenDetail(Achievement a) { detail = a; detailSwap = -10; dialogTarget = 1; if (Motion.Reduced) dialog = Math.Max(dialog, 0.5f); hovered = null; PlaceSearch(); Kick(); }
+        void OpenDetail(Achievement a) { SettleHover(); detail = a; detailSwap = -10; dialogTarget = 1; if (Motion.Reduced) dialog = Math.Max(dialog, 0.5f); hovered = null; PlaceSearch(); Kick(); }
         void CloseDialog() { dialogTarget = 0; RevealDetailTile(); Kick(); }
         bool CloseTop()
         {
@@ -1146,7 +1254,7 @@ namespace WiiUAchievements
         void ToggleMotion()
         {
             Motion.Reduced = !Motion.Reduced; motionChoice = Motion.Reduced ? "reduced" : "full";
-            ClearTileImages(); TrySaveSettings(); Invalidate();
+            ClearTileImages(); InvalidateScene(); TrySaveSettings(); Invalidate();
         }
         void TrySaveSettings()
         {

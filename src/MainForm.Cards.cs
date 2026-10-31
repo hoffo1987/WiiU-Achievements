@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -78,8 +79,12 @@ namespace WiiUAchievements
                 Theme.Measure(measure, a.Description, descriptionFont, description.Width).Height <= description.Height + 0.5f;
         }
 
+        // Per-objective widget id, accessible description and click action, built once.
+        readonly Dictionary<Achievement, string[]> tileText = new Dictionary<Achievement, string[]>();
+        readonly Dictionary<Achievement, Action> tileOpen = new Dictionary<Achievement, Action>();
         void ArrangeGrid(float w, float h, float top)
         {
+            if (tileText.Count > rules.Count * 3) { tileText.Clear(); tileOpen.Clear(); }
             gridRect = new RectangleF(Pad - 8, top, w - Pad * 2 + 16, Math.Max(1, h - BottomH - top));
             var items = Filtered();
             float inner = gridRect.Width - 16;
@@ -94,10 +99,16 @@ namespace WiiUAchievements
             {
                 var a = items[i];
                 var r = new RectangleF(gridRect.X + 8 + (i % cols) * (tileW + Gap), gridRect.Y + 12 + (i / cols) * (TileH + Gap) - scroll, tileW, TileH);
-                var tile = Put("tile:" + a.Id, Kind.Tile, r, a.Title, () => OpenDetail(a), true, 0);
+                string[] text;
+                if (!tileText.TryGetValue(a, out text))
+                    tileText[a] = text = new[] { "tile:" + a.Id, a.Chapter + ". " + a.Category + ". " + Art.TierName(arts[a.Id].Tier) + ". " + a.Description +
+                        (a.IsPlanned ? " Da verificare. " + a.Requirement : a.Experimental ? " Sperimentale: rilevamento implementato, da verificare giocando." : "") };
+                Achievement target = a;
+                Action open;
+                if (!tileOpen.TryGetValue(a, out open)) tileOpen[a] = open = () => OpenDetail(target);
+                var tile = Put(text[0], Kind.Tile, r, a.Title, open, true, 0);
                 tile.Achievement = a;
-                tile.Help = a.Chapter + ". " + a.Category + ". " + Art.TierName(arts[a.Id].Tier) + ". " + a.Description +
-                    (a.IsPlanned ? " Da verificare. " + a.Requirement : a.Experimental ? " Sperimentale: rilevamento implementato, da verificare giocando." : "");
+                tile.Help = text[1];
             }
             if (items.Count == 0 && (filter != 0 || FiltersActive))
             {
@@ -111,7 +122,8 @@ namespace WiiUAchievements
             var state = g.Save();
             g.SetClip(new RectangleF(0, gridRect.Y, W, gridRect.Height), CombineMode.Intersect);
             int inView = visible.Count(v => v.Kind == Kind.Tile && v.Bounds.Bottom >= gridRect.Y - TileH && v.Bounds.Y <= gridRect.Bottom + TileH);
-            tileCacheBudget = Math.Min(TileCacheMaximum, Math.Max(TileCacheLimit, inView * 2 + 8));
+            var first = visible.FirstOrDefault(v => v.Kind == Kind.Tile);
+            if (first != null) UpdateTileBudget(first.Bounds.Size, inView);
             int count = 0, drawn = 0;
             foreach (var w in visible)
             {

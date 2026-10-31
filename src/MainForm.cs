@@ -70,14 +70,14 @@ namespace WiiUAchievements
             AutoScaleMode = AutoScaleMode.None;
             BackColor = Theme.BackBottom; ForeColor = Theme.Ink;
             BuildUi();
-            ClientSize = new Size((int)(1120 * scale), (int)(800 * scale));
-            MinimumSize = SizeFromClientSize(new Size((int)(900 * scale), (int)(680 * scale)));
+            FixWindowSize();
             cemuPath.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Cemu_2.6", "Cemu.exe");
             player.Text = "Giocatore 1";
             LoadSettings();
             RestoreProgressView();
             player.TextChanged += delegate
             {
+                InvalidateScene();
                 if (!FieldsEditable) return;
                 progress = null; engine = null; current = null;
                 RefreshList();
@@ -129,7 +129,7 @@ namespace WiiUAchievements
         }
         void SetStatus(string title, string subtitle, StatusKind kind)
         {
-            statusTitle = title; statusDetail = subtitle; statusKind = kind;
+            statusTitle = title; statusDetail = subtitle; statusKind = kind; InvalidateScene();
             AccessibleDescription = title + ". " + subtitle;
             Invalidate(); Kick();
         }
@@ -138,6 +138,7 @@ namespace WiiUAchievements
             logLines.Add(DateTime.Now.ToString("HH:mm:ss") + "  " + message);
             if (logLines.Count > 500) logLines.RemoveAt(0);
             if (drawerTarget == 0) unreadLogs++;
+            InvalidateScene();
             Invalidate();
         }
         void SetConnected(bool value)
@@ -384,14 +385,14 @@ namespace WiiUAchievements
             bool changed = current == null || current.Rupees != s.Rupees || current.Health != s.Health || current.MaxHealth != s.MaxHealth || s.ProgressionDiffersFrom(current);
             if (engine != null && engineStateVersion != engine.StateVersion) { changed = true; engineStateVersion = engine.StateVersion; }
             current = s;
-            if (changed) { Invalidate(); Kick(); }
+            if (changed) { InvalidateScene(); Invalidate(); Kick(); }
         }
         int ActiveCount { get { return rules.Count(a => !a.IsPlanned); } }
         int UnlockedCount { get { return rules.Count(a => !a.IsPlanned && progress != null && progress.Contains(a.Id)); } }
         int EarnedPoints { get { return rules.Where(a => !a.IsPlanned && progress != null && progress.Contains(a.Id)).Sum(a => a.Points); } }
         void RefreshList()
         {
-            Invalidate(); Kick();
+            InvalidateScene(); Invalidate(); Kick();
         }
         void CloudLogin() { AuthenticateCloud(false); }
         void CloudSignUp() { AuthenticateCloud(true); }

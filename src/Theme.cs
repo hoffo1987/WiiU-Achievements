@@ -26,6 +26,9 @@ namespace WiiUAchievements
         static PrivateFontCollection collection;
         static FontFamily regularFamily, heavyFamily;
         static readonly Dictionary<string, Font> fonts = new Dictionary<string, Font>();
+        // Fonts by tenth of a pixel and weight: an integer key, so asking for a font every frame
+        // allocates nothing.
+        static readonly Dictionary<int, Font> sized = new Dictionary<int, Font>();
         public static bool EmbeddedFonts { get { LoadFonts(); return regularFamily != null; } }
 
         static void LoadFonts()
@@ -67,6 +70,15 @@ namespace WiiUAchievements
 
         // Sizes are in pixels of the 96-DPI logical canvas; the window applies the DPI scale.
         public static Font Font(float size, Weight weight)
+        {
+            int fast = (int)Math.Round(size * 10) * 4 + (int)weight;
+            Font cached;
+            if (sized.TryGetValue(fast, out cached)) return cached;
+            cached = MakeFont(size, weight);
+            sized[fast] = cached;
+            return cached;
+        }
+        static Font MakeFont(float size, Weight weight)
         {
             string key = size.ToString("0.0", CultureInfo.InvariantCulture) + weight;
             Font font;
@@ -122,6 +134,27 @@ namespace WiiUAchievements
         }
 
         // ---- Text ----
+        // Text formats are immutable once built; one per alignment/wrap combination and thread.
+        [ThreadStatic] static Dictionary<int, StringFormat> formats;
+        [ThreadStatic] static SolidBrush textBrush;
+        static StringFormat CachedFormat(StringAlignment h, StringAlignment v, bool wrap)
+        {
+            if (formats == null) formats = new Dictionary<int, StringFormat>();
+            int key = (int)h * 8 + (int)v * 2 + (wrap ? 1 : 0);
+            StringFormat f;
+            if (!formats.TryGetValue(key, out f)) formats[key] = f = Format(h, v, wrap);
+            return f;
+        }
+        // Measurements repeat every frame with the same strings: remember them per font.
+        [ThreadStatic] static Dictionary<Font, Dictionary<string, SizeF>> measured;
+        [ThreadStatic] static int measuredCount;
+        static Dictionary<string, SizeF> MeasureCache(Font font)
+        {
+            if (measured == null || measuredCount > 6000) { measured = new Dictionary<Font, Dictionary<string, SizeF>>(); measuredCount = 0; }
+            Dictionary<string, SizeF> cache;
+            if (!measured.TryGetValue(font, out cache)) measured[font] = cache = new Dictionary<string, SizeF>(StringComparer.Ordinal);
+            return cache;
+        }
         static StringFormat Format(StringAlignment h, StringAlignment v, bool wrap)
         {
             var f = (StringFormat)StringFormat.GenericTypographic.Clone();
@@ -133,11 +166,25 @@ namespace WiiUAchievements
         }
         public static SizeF Measure(Graphics g, string text, Font font)
         {
-            using (var f = Format(StringAlignment.Near, StringAlignment.Near, false)) return g.MeasureString(text ?? "", font, new PointF(0, 0), f);
+            // Results depend on the font and the text rendering mode; all callers measure with
+            // the same grid-fitted settings as they draw.
+            var cache = MeasureCache(font);
+            string key = text ?? "";
+            SizeF size;
+            if (cache.TryGetValue(key, out size)) return size;
+            size = g.MeasureString(key, font, new PointF(0, 0), CachedFormat(StringAlignment.Near, StringAlignment.Near, false));
+            cache[key] = size; measuredCount++;
+            return size;
         }
         public static SizeF Measure(Graphics g, string text, Font font, float width)
         {
-            using (var f = Format(StringAlignment.Near, StringAlignment.Near, true)) return g.MeasureString(text ?? "", font, new SizeF(width, 10000), f);
+            var cache = MeasureCache(font);
+            string key = width.ToString("0.0", CultureInfo.InvariantCulture) + "\u0001" + (text ?? "");
+            SizeF size;
+            if (cache.TryGetValue(key, out size)) return size;
+            size = g.MeasureString(text ?? "", font, new SizeF(width, 10000), CachedFormat(StringAlignment.Near, StringAlignment.Near, true));
+            cache[key] = size; measuredCount++;
+            return size;
         }
         public static void Text(Graphics g, string text, Font font, Color color, RectangleF r)
         {
@@ -153,7 +200,8 @@ namespace WiiUAchievements
                 float grow = need - r.Height;
                 r = new RectangleF(r.X, v == StringAlignment.Center ? r.Y - grow / 2 : v == StringAlignment.Far ? r.Y - grow : r.Y, r.Width, need);
             }
-            using (var f = Format(h, v, wrap)) using (var b = new SolidBrush(color)) g.DrawString(text, font, b, r, f);
+            if (textBrush == null) textBrush = new SolidBrush(color); else textBrush.Color = color;
+            g.DrawString(text, font, textBrush, r, CachedFormat(h, v, wrap));
         }
         public static void ShadowText(Graphics g, string text, Font font, Color color, RectangleF r, StringAlignment h, StringAlignment v, bool wrap, int shadow)
         {

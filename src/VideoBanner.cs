@@ -138,12 +138,18 @@ namespace WiiUAchievements
                     finally { Marshal.ReleaseComObject(sample); }
                     if (baseline < 0) { baseline = timestamp; clock.Restart(); }
                     long due = (timestamp - baseline) / 10000 - clock.ElapsedMilliseconds;
+                    SizeF requested; float scale;
+                    lock (gate) { requested = requestSize; scale = requestScale; }
+                    bool composed = scale > 0 && requested.Width > 0;
+                    if (composed) Compose(ref composedBack, back, leftBack, rightBack, requested, scale);
                     if (due > 0) Thread.Sleep((int)Math.Min(due, 200));
                     else if (due < -500) { baseline = timestamp; clock.Restart(); }
                     lock (gate)
                     {
                         var swap = front; front = back; back = swap; swap = blurFront; blurFront = blurBack; blurBack = swap;
                         var column = leftFront; leftFront = leftBack; leftBack = column; column = rightFront; rightFront = rightBack; rightBack = column;
+                        frontSerial++;
+                        if (composed) { swap = composedFront; composedFront = composedBack; composedBack = swap; composedSerial = frontSerial; }
                     }
                     Frames++;
                 }
@@ -218,29 +224,68 @@ namespace WiiUAchievements
             }
             finally { Marshal.ReleaseComObject(buffer); }
         }
+        // Composed banner frames at the window's device size. The decoder thread composes the
+        // next frame (scaled picture plus continued edges) so the window only copies pixels 1:1;
+        // the window composes itself only for the first frame, a new size or a paused video.
+        Bitmap composedFront, composedBack;
+        int frontSerial, composedSerial = -1;
+        SizeF requestSize;
+        float requestScale;
+
+        static float DeviceScale(Graphics g)
+        {
+            using (var m = g.Transform) { var e = m.Elements; return Math.Max(0.25f, (float)Math.Sqrt(e[0] * e[0] + e[1] * e[1])); }
+        }
+        static Size DeviceSize(SizeF logical, float scale) { return new Size(Math.Max(1, (int)Math.Round(logical.Width * scale)), Math.Max(1, (int)Math.Round(logical.Height * scale))); }
+        void Compose(ref Bitmap target, Bitmap frame, Color[] left, Color[] right, SizeF logical, float scale)
+        {
+            var size = DeviceSize(logical, scale);
+            if (target == null || target.Size != size)
+            {
+                if (target != null) target.Dispose();
+                target = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppPArgb);
+            }
+            using (var g = Graphics.FromImage(target))
+            {
+                g.ScaleTransform(scale, scale);
+                Paint(g, new RectangleF(0, 0, logical.Width, logical.Height), frame, left, right);
+            }
+        }
+        // The picture keeps its proportions; outside it, the outer colours continue sky and sea.
+        void Paint(Graphics g, RectangleF r, Bitmap frame, Color[] left, Color[] right)
+        {
+            float s = r.Height / Math.Max(1, FocusBottom - FocusTop), vw = width * s, vh = height * s;
+            float x = r.X + r.Width * Anchor - FocusX * s;
+            if (vw >= r.Width) x = Math.Max(r.Right - vw, Math.Min(r.X, x));
+            float y = r.Y - FocusTop * s;
+            g.InterpolationMode = InterpolationMode.HighQualityBilinear; g.PixelOffsetMode = PixelOffsetMode.Half;
+            using (var wrap = new ImageAttributes())
+            {
+                wrap.SetWrapMode(WrapMode.TileFlipXY);
+                float f = Feather * s;
+                if (x + f > r.X) Side(g, left, new RectangleF(r.X - 2, y, x + f - r.X + 2, vh), r);
+                if (x + vw - f < r.Right) Side(g, right, new RectangleF(x + vw - f, y, r.Right + 2 - (x + vw - f), vh), r);
+                g.DrawImage(frame, Rectangle.Round(new RectangleF(x, y, vw, vh)), 0, 0, width, height, GraphicsUnit.Pixel, wrap);
+            }
+        }
         // Draws the newest frame into r (rounded by radius). Returns false when no frame exists yet.
         public bool Draw(Graphics g, RectangleF r, float radius)
         {
             lock (gate)
             {
                 if (front == null || leftFront == null) return false;
-                float s = r.Height / Math.Max(1, FocusBottom - FocusTop), vw = width * s, vh = height * s;
-                float x = r.X + r.Width * Anchor - FocusX * s;
-                if (vw >= r.Width) x = Math.Max(r.Right - vw, Math.Min(r.X, x));
-                float y = r.Y - FocusTop * s;
+                float scale = DeviceScale(g);
+                requestSize = r.Size; requestScale = scale;
+                if (composedFront == null || composedFront.Size != DeviceSize(r.Size, scale) || composedSerial != frontSerial)
+                {
+                    Compose(ref composedFront, front, leftFront, rightFront, r.Size, scale);
+                    composedSerial = frontSerial;
+                }
                 var state = g.Save();
                 using (var clip = Theme.Round(r, radius)) g.SetClip(clip, CombineMode.Intersect);
                 var interpolation = g.InterpolationMode; var offset = g.PixelOffsetMode;
-                g.InterpolationMode = InterpolationMode.HighQualityBilinear; g.PixelOffsetMode = PixelOffsetMode.Half;
-                using (var wrap = new ImageAttributes())
-                {
-                    // Outside the picture, the outer colours continue sky and sea as soft vertical gradients.
-                    wrap.SetWrapMode(WrapMode.TileFlipXY);
-                    float f = Feather * s;
-                    if (x + f > r.X) Side(g, leftFront, new RectangleF(r.X - 2, y, x + f - r.X + 2, vh), r);
-                    if (x + vw - f < r.Right) Side(g, rightFront, new RectangleF(x + vw - f, y, r.Right + 2 - (x + vw - f), vh), r);
-                    g.DrawImage(front, Rectangle.Round(new RectangleF(x, y, vw, vh)), 0, 0, width, height, GraphicsUnit.Pixel, wrap);
-                }
+                g.InterpolationMode = InterpolationMode.NearestNeighbor; g.PixelOffsetMode = PixelOffsetMode.Half;
+                g.DrawImage(composedFront, (float)Math.Round(r.X * scale) / scale, (float)Math.Round(r.Y * scale) / scale, composedFront.Width / scale, composedFront.Height / scale);
                 g.InterpolationMode = interpolation; g.PixelOffsetMode = offset;
                 g.Restore(state);
                 return true;
@@ -266,8 +311,8 @@ namespace WiiUAchievements
             if (thread != null && !thread.Join(800)) { }
             lock (gate)
             {
-                foreach (var b in new[] { front, back, blurFront, blurBack }) if (b != null) b.Dispose();
-                front = back = blurFront = blurBack = null;
+                foreach (var b in new[] { front, back, blurFront, blurBack, composedFront, composedBack }) if (b != null) b.Dispose();
+                front = back = blurFront = blurBack = composedFront = composedBack = null;
             }
         }
 

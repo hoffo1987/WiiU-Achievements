@@ -1,5 +1,22 @@
 # Validation record and reproduction
 
+## Fixed window and performance pass — 2026-10-31, Windows x64
+
+The window has one fixed size, 1120×840 logical pixels, and cannot be resized or
+maximised; on screens too small for it at the desktop DPI the whole interface is
+drawn at a smaller scale. Performance (synthetic benchmark, 1120×840, 144 Hz
+display): full frame 14.9 → 4.7 ms; banner video frame 3.5 → 0.6 ms (frames are
+composed at device size on the decoder thread); card hover 4.9 → 1.0 ms (cached
+card plus lift/outline); settings panel animation ~30 → 6 ms (frozen page under
+panels, parchment surfaces cached instead of a ~20 ms texture brush); layout
+allocations 104 → 11 KB per frame (memoized catalog queries, per-card text).
+Animations run frame by frame while no input waits, paced to the display refresh
+(1 ms timer resolution only while animating); continuous animation measured a
+steady 13.9 ms cadence (two refreshes at 144 Hz) instead of irregular 15–340 ms
+gaps. Cards near the viewport are prepared while idle, so scrolling stays at
+~1–6 ms. 322 core and 143 UI checks pass. Not yet explained: rare ~50 ms idle
+pauses seen in the benchmark loop; not verified in a live Cemu session.
+
 ## Integration of the redesign with the 110-medal catalog review — 2026-10-31, Windows x64
 
 The UI redesign (below) and the uncommitted work found in the main checkout (the

@@ -153,6 +153,8 @@ without flips, rays or sparkles, and the popup fades in place.
 
 ## Layout range
 
+The window is fixed at 1120×840 logical pixels (no resize or maximise; smaller screens draw it at a reduced scale). The layout code still adapts to other sizes, which the UI tests keep checking.
+
 Supported from 900×680 up to ultrawide. At 900×680 the cards use two columns of
 at least 340 px and a full card row plus part of the next stays visible; at 1920×1080 the toolbar is a
 single row; at 3440×1440 ten columns fit and the search field stays compact.
