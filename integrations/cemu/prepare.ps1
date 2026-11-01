@@ -69,7 +69,7 @@ $assetRoot = Join-Path $project 'assets'
 Get-ChildItem -LiteralPath $assetRoot -File -Recurse | Where-Object {
     $_.Extension.ToLowerInvariant() -in @('.png', '.mp4', '.ttf', '.ico') -or $_.FullName -eq (Join-Path $assetRoot 'fonts\OFL.txt')
 } | ForEach-Object { Add-StageFile $_.FullName ('wiiu-achievements-managed/assets/' + $_.FullName.Substring($assetRoot.Length + 1)) }
-foreach ($name in @('ARTWORK-SOURCES.md', 'UI.md', 'MEMORY-MAP.md', 'PLAYTHROUGH.md', 'VALIDATION.md', 'COLLABORATION.md', 'ARCHITECTURE.md', 'CEMU-INTEGRATION.md')) {
+foreach ($name in @('ARTWORK-SOURCES.md', 'UI.md', 'MEMORY-MAP.md', 'PLAYTHROUGH.md', 'VALIDATION.md', 'COLLABORATION.md', 'ARCHITECTURE.md', 'CEMU-INTEGRATION.md', 'DETECTOR-EXPANSION.md')) {
     Add-StageFile (Join-Path $project ('docs/' + $name)) ('wiiu-achievements-managed/docs/' + $name)
 }
 Add-StageFile (Join-Path $PSScriptRoot 'workflows/wiiu-achievements.yml') '.github/workflows/wiiu-achievements.yml'

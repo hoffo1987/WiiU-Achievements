@@ -1,5 +1,94 @@
 # Validation record and reproduction
 
+## Missing unlock dates on narrow cards — 2026-11-01, Windows x64
+
+Reported: only "Bottino da pirata" displayed a timestamp among earned medals.
+The card renderer intentionally discarded the entire secondary text if it did
+not fit after the "Sbloccato" chip, with points reducing the available width.
+The store still requires and persists a UTC timestamp for every award.
+Unlocked card footers now draw a compact check and full `dd/MM/yyyy HH:mm`
+local date in reserved space. Detail dates, engine, persistence, IDs and
+revision are unchanged; existing saved timestamps need no repair or migration.
+
+Checks actually performed:
+
+- Reproduced invisible timestamps before the fix with a pixel regression on
+  every one of the 110 executable rules at minimum card width (340 px).
+- New rendering checks change the date and hour independently for every rule
+  at 100/125/150/200% scale; all four pass after the fix. A fifth check confirms
+  the full numeric year/date/time fits beside the check and all catalog point
+  values. The isolated `UiTests.exe <output> --unlock-dates-only` runs these five.
+- Inspected the synthetic 1120x840 preview with twelve stored awards: dates
+  and times are visible on the three-column grid, including the pirate medal.
+- Full standalone UI suite passed 149 checks (145 existing + four pixel
+  regressions); the final targeted run passed all five new date checks,
+  including the subsequently added full-text fit assertion.
+- 214 native feed + 16 native UI checks passed; shared C# 5/x64 build passed.
+- Root EXE rebuilt; after the owner closed Cemu, installed the identical managed
+  EXE into `build-check/cemu-integrated/WiiUAchievements/` and verified SHA-256.
+  Cemu itself and personal state were not modified. No ZIP/publication.
+
+No new real-game award or reopened live Cemu panel was tested for this UI fix.
+
+## All 40 remaining catalog objectives — 2026-11-01, Windows x64
+
+110 executable objectives, 93 explicitly experimental, zero planned WWHD
+entries. All former IDs, points, presentation, revision and archive identity
+are preserved. The legacy `achievements.xml` is byte-identical. The two
+companion XML hashes in the artwork audit contract were intentionally updated.
+The optional planned companion now accepts zero entries; active sets still
+reject emptiness. Synthetic planned fixtures retain loader/engine/UI coverage.
+
+Both runtime paths use the same source-derived decoders. Read size `0x724`,
+guest-base translation and native ABI 1 / 1952 bytes remain unchanged. Current
+spawn, room and layer are decoded from the already-captured scene context for
+the final-duel destination. `DETECTOR-EXPANSION.md` records all 40 conditions,
+sources, the individual 44-source HD heart-piece tally, content coverage and
+known limits. Local read-only static EUR scene-parameter checks confirmed the
+six Octo defeat switches, all 11 heart chests, the 15 heart salvage sources,
+and the labyrinth/ghost-ship chest indices and HD rewards. No game files or
+memory dumps were exported into the source bundle.
+
+Checks actually passed:
+
+- **513 core/engine/persistence/reader checks**, including all 61 chart item
+  bits, HD default deciphering bits, owned/opened/salvaged distinctions,
+  44 individual-source composition, boss-container exclusion, exact chest
+  selection, quest negative cases and final-duel gate/reset/persistence.
+- **214 native feed + 16 native UI checks**, including raw packet scene
+  coordinates, wrong final layer and transition suppression, shared-decoder
+  parity, queue behavior and all 110 rules loaded in the native UI.
+- **145 standalone UI checks**, with the 110 denominator, empty inactive tab,
+  synthetic future-planned accessibility/detail fixtures and existing flow checks.
+- Static artwork/catalog audit: **110 IDs**, **17 standard / 93 experimental**,
+  unchanged **53 bronze / 47 silver / 10 gold**, preserved artwork and revision.
+- `git diff --check` passed.
+- Source bundle allowlist/integrity and isolated rebuild passed: **302 files**,
+  no ZIP created. Root EXE rebuilt after both apps were confirmed closed and
+  copied with all four XML files into the local fork's module directory;
+  the two managed EXEs have the same SHA-256. The Cemu EXE was not replaced.
+
+The sandbox rejected `File.Replace` during a synthetic cloud credential
+test; the complete core suite then passed outside the sandbox with an
+isolated workspace temp directory. No production credential/profile was used.
+
+No new acquisition, late-game save, menu/load/reconnect or ending was tested
+in the real game for this expansion. The owner has only the current save.
+Static parameters and synthetic tests do not certify live EUR behavior.
+Maggie/trading completion inferences, stage-save timing and the final scene's
+valid-player observation window remain particularly important live checks.
+The native C++ host production code and full Cemu executable are unchanged.
+The attempted GitHub push and CI dispatch were rejected by automatic approval
+review before execution because this new source export lacked explicit user
+authorization. The user then explicitly approved this fork push and CI.
+Published source commit `a7b03d0a9fcb6241da2b88512e8b310cd4af98b6` passed
+[CI run 41256997922](https://github.com/hoffo1987/Cemu-WiiUAchievements/actions/runs/41256997922):
+the real C++ host was rebuilt into its isolated harness, loaded the managed
+module through CLR v4 and passed synthetic engine/persistence smoke checks;
+214 feed + 16 native UI checks passed on the clean Windows runner too.
+This was `validation_only=true`: no new downloadable full-Cemu artifact was
+built. The local fork source overlay and both local modules are updated.
+
 ## Stuck "Attesa automatica" after a Piece of Heart — 2026-11-01, Windows x64, live Cemu fork
 
 Reported in the Forsaken Fortress: recording went back to **Attesa automatica**

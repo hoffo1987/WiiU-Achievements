@@ -1,14 +1,14 @@
 # Wind Waker HD — expanded achievement catalog
 
-The three XML files contain **110 targets**: **70 executable objectives** (17
-previous rules plus **53 implemented experiments**) and **40 unimplemented targets**. This is an additive expansion
+The three XML files contain **110 executable targets**: 17 previous rules and
+**93 implemented experiments**, including all 40 targets promoted on 2026-11-01. This is an additive expansion
 under `wwhd-alpha-1`, not a claim of a working full-game achievement set.
 All ten original IDs, thresholds and points remain unchanged. Existing local
 progress loads under the same identity and filename, without a migration.
 
 ## What can unlock now
 
-The **53 new rules have real decoders and execute in the engine**, at the user's
+The **93 experimental rules have real decoders and execute in the engine**, at the user's
 explicit request to implement batches before they verify them while playing.
 They are clearly experimental, not live-certified support. They cover 20 story
 milestones, all 21 equipment targets, 8 song/bottle collections, 3 sea-chart
@@ -25,22 +25,25 @@ mappings retain their stated evidence limits. Supported loading flows suspend
 and resume automatically. See `PROGRESS-RECOVERY.md`, `AUTOMATIC-LOADS.md` and
 `VALIDATION.md`; no new full-playthrough certification is implied.
 
-## What is prepared, with detection still pending
+## The former 40 planned targets (implemented 2026-11-01)
+
+All groups below now have shared executable conditions; see
+[DETECTOR-EXPANSION.md](DETECTOR-EXPANSION.md) for every ID, sources and remaining
+live-validation limits. The following list describes the former pending scope.
 
 - **5 story targets:** tower rising, the two sage awakenings, Puppet Ganon and
-  Ganondorf. Their exact conditions remain unimplemented.
+  Ganondorf.
 - **8 exploration targets:** chart-based salvage, Ghost Ship, Big Octos and
   the Savage Labyrinth milestones.
 - **10 collection targets:** heart pieces, normal/decoded treasure charts,
   Tingle statues and the Nintendo Gallery.
-- **17 side-quest targets:** specific minigame/quest rewards still require
-  sufficiently precise mappings. Generic hearts or rupees are not substitutes.
+- **17 side-quest targets:** specific minigame/quest rewards, with their
+  source-derived mappings and documented remaining inferences.
 
 Titles and descriptions are original Italian text. IDs describe the exact
 intended accomplishment, so later implementation must not silently weaken the
-condition. Each pending entry includes a short detection requirement. Points are
-proposals, shown as such in the detail card; they do not contribute to earned or
-available points. Completion percentage counts only executable objectives.
+condition. All 110 now contribute to available points and completion percentage.
+Future planned entries remain supported but this WWHD set contains none.
 
 The UI provides status tabs, a category cycle button (**C**) and chapter cycle
 button (**F**). Optional `order`/`chapter` metadata sort the approximate route
@@ -95,11 +98,11 @@ when a progress store contains the ID. Presentation ignores such store entries.
 
 `achievements.xml` contains only the 16 executable thresholds, retaining the
 format understood by the older running application. `achievements-planned.xml`
-contains the 40 pending targets and is explicitly associated with Wind Waker by
+is now an empty, optional-content companion and is explicitly associated with Wind Waker by
 the game catalog. New builds load both, validate the same revision and reject
 duplicate IDs across files or executable rules in the pending companion. This
 avoids breaking the old root EXE on restart while a separate build is reviewed.
-`achievements-story.xml` holds the tunic plus the 53 experimental rules, explicitly associated
+`achievements-story.xml` holds the tunic plus the 93 experimental rules, explicitly associated
 with the current reader. The loader rejects duplicate IDs across all three
 files, pending entries in active extensions, and active entries in pending files.
 

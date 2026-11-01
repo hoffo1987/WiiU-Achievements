@@ -1,5 +1,11 @@
 # Prossime attività
 
+**1 novembre 2026:** i 40 rilevatori mancanti sono implementati in entrambe le
+versioni. Stato corrente: **110 attivi, 93 sperimentali, zero non implementati**.
+Leggere `docs/DETECTOR-EXPANSION.md` prima delle prove: include tutti i nuovi
+flag, i limiti di Maggie/scambi e la finestra finale di Ganondorf. Il proprietario
+ha soltanto la partita corrente. I conteggi 70/53/40 più sotto sono storici.
+
 Integrazione Cemu richiesta il 31 ottobre: completare la build Windows del fork
 e le prove live elencate in `docs/CEMU-INTEGRATION.md`. Gli hook riusano motore,
 interfaccia e progressi esistenti nel processo Cemu; non certificano nuovi offset.
@@ -15,8 +21,10 @@ pergamena, vento, onde e cornici semplici senza deformazioni. Le immagini pubbli
 si rigenerano con `tools/render-docs.ps1`, usando soltanto dati sintetici.
 
 1. Prove live di morte/continua, nuova partita/modalità eroe e due slot diversi.
-2. Playtesting progressivo dei 53 rilevamenti sperimentali.
-3. Ricerca mirata dei 40 traguardi non implementati, con prove della versione esatta.
+2. Playtesting progressivo dei 93 rilevamenti sperimentali in entrambe le versioni.
+3. Verificare prima i nuovi premi disponibili nella partita corrente; poi
+   forzieri/switch dopo cambio scena, totale dei frammenti, Maggie/scambi,
+   Galleria HD e transizione finale di Ganondorf nella versione esatta.
 4. Controllo della notifica sopra le modalità fullscreen di Cemu usate dal giocatore.
 
 La sincronizzazione cloud e i flussi automatici già verificati sono descritti in
@@ -63,9 +71,9 @@ Usare `build-check/rarity/`; la memoria e le condizioni restano quelle della
 build Playthrough TEST. Il futuro platino sarà un obiettivo separato di
 completamento del set; non assegnarlo a una semplice soglia da 25 punti.
 
-**Build attuale: Playthrough TEST.** Sono implementati 53 nuovi rilevamenti
-sperimentali, in serie ordinate dalla partenza fino agli strumenti finali: 70
-attivi in totale, 40 non implementati. **Tappa / F** filtra il percorso e
+**Build attuale: Playthrough TEST.** Sono implementati 93 rilevamenti
+sperimentali, in serie ordinate dalla partenza fino al finale e agli extra: 110
+attivi in totale, zero non implementati. **Tappa / F** filtra il percorso e
 **Categoria / C** il tipo. L'utente li verificherà durante la partita normale.
 La guida operativa è `docs/PLAYTHROUGH.md`. Le note sotto descrivono la build
 precedente e la progressione del lavoro.

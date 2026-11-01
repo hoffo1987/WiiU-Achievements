@@ -9,17 +9,20 @@ avvio del gioco, attesa nei menu, pannello e riavvio sono stati provati sul PC.
 Eseguibile locale: `build-check/cemu-integrated/Cemu.exe`;
 menu **Strumenti → Wii U Achievements**. Vedi la
 [guida dell'integrazione](docs/CEMU-INTEGRATION.md) per uso e prove ancora mancanti.
-Il set mantiene i rilevamenti sperimentali e i traguardi non implementati.
+Fork e standalone usano lo stesso set e gli stessi rilevamenti sperimentali.
 
 Sistema di obiettivi indipendente per giochi Wii U emulati su PC, scritto da zero
 in C# 5 / .NET Framework x64. Primo gioco supportato: **The Wind Waker HD EUR v0
 su Cemu 2.6**, RPX **cdc68acd**. Nessuna dipendenza da EmuHook o RetroAchievements.
 
-**Stato del 30 ottobre 2026 — Playthrough TEST:** 110 obiettivi nel catalogo,
-**70 eseguibili**, di cui **53 rilevamenti sperimentali**, e **40 non implementati**.
+**Stato del 1 novembre 2026 — Playthrough TEST:** **110 obiettivi eseguibili**,
+di cui **93 sperimentali**. I 40 obiettivi prima non implementati hanno ora
+condizioni condivise tra fork e standalone, senza cambiare ID o revisione.
 I rilevamenti sperimentali sono disponibili per prove progressive durante la
 partita: non costituiscono un set completo verificato. Le prove reali e i limiti
 sono in [VALIDATION](docs/VALIDATION.md) e [PLAYTHROUGH](docs/PLAYTHROUGH.md).
+Fonti, condizioni di tutti i 40, copertura e limiti sono in
+[Espansione dei rilevamenti](docs/DETECTOR-EXPANSION.md).
 
 ![Interfaccia Wind Waker HD](docs/screenshots/main.png)
 
@@ -74,8 +77,9 @@ Vedi [architettura](docs/ARCHITECTURE.md) e [mappa di memoria](docs/MEMORY-MAP.m
   (lucchetto), sperimentale (provetta), non attivo (clessidra, bordo tratteggiato).
 - Un clic su una scheda apre descrizione, rarità e stato del rilevamento; le
   frecce ‹ › (o sinistra/destra) scorrono gli obiettivi nell'ordine visualizzato.
-- I 40 obiettivi non implementati non si sbloccano e non entrano nei punti o
-  nella percentuale. I 53 sperimentali sono eseguibili ma richiedono prove live.
+- Tutti i 110 obiettivi entrano nei punti e nella percentuale. I 93 sperimentali
+  richiedono ancora prove live; la scheda **Non attivi** è ora vuota per WWHD.
+  Il nuovo denominatore può abbassare la percentuale senza perdere sblocchi.
 - La produzione riconosce anche condizioni già presenti nel salvataggio, dopo
   750 ms di contesto coerente e tre conferme. La demo mantiene il rilevamento
   sintetico dei passaggi sotto/sopra soglia.

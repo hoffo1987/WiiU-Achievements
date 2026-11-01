@@ -29,7 +29,7 @@ try {
         'tests\RecoveryTests.cs', 'tests\GameplayTests.cs', 'tests\CloudTests.cs', 'tests\CoreTests.cs', 'tests\SystemTests.cs', 'tests\ProgressionTests.cs', 'tests\UiTests.cs', 'tests\Probe.cs', 'tests\InitialItemProbe.cs', 'tests\inspect-initial.ps1', 'tests\run.ps1', 'tests\run.sh', 'tests\run-ui.ps1', 'tests\firestore-rules.cjs', 'tests\test-firestore.ps1',
         'docs\PROGRESS-RECOVERY.md', 'docs\GROK-REVIEW-2026-10-29.md', 'docs\AUTOMATIC-LOADS.md', 'docs\CLOUD.md', 'docs\ARCHITECTURE.md', 'docs\ACHIEVEMENTS.md', 'docs\PLAYTHROUGH.md', 'docs\RARITIES.md', 'docs\MEMORY-MAP.md', 'docs\VALIDATION.md', 'docs\COLLABORATION.md',
         '.cursor\rules\project.mdc', '.github\workflows\validate.yml',
-        'tests\NativeCemuTests.cs', 'tests\NativeCemuUiTests.cs', 'tests\run-native.ps1', 'docs\CEMU-INTEGRATION.md',
+        'tests\NativeCemuTests.cs', 'tests\NativeCemuUiTests.cs', 'tests\run-native.ps1', 'docs\CEMU-INTEGRATION.md', 'docs\DETECTOR-EXPANSION.md',
         'integrations\cemu\README.md', 'integrations\cemu\FORK.md', 'integrations\cemu\prepare.ps1', 'integrations\cemu\build.ps1', 'integrations\cemu\cemu-2.6.patch',
         'integrations\cemu\native\CMakeLists.txt', 'integrations\cemu\native\WiiUAchievementsHost.cpp', 'integrations\cemu\native\WiiUAchievementsHost.h', 'integrations\cemu\native\WiiUAchievementsPacket.h',
         'integrations\cemu\native-tests\NativeHostSmoke.cpp', 'integrations\cemu\native-tests\run-smoke.ps1',

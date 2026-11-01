@@ -1,4 +1,4 @@
-"""Audit editorial coverage, artwork rarity and the unchanged Wind Waker contract.
+"""Audit editorial coverage, artwork rarity and the pinned Wind Waker contract.
 
 Developer-only: Python 3, Pillow and NumPy. No Cemu or user state is accessed.
 Run: python -I tools/audit-achievement-catalog.py
@@ -90,16 +90,16 @@ def main():
                 ['collect-heart-piece-first', 'collect-heart-pieces-12', 'collect-heart-pieces-44']]:
         order = [int(entries[id]['order']) for id in ids]
         require(order == sorted(order), 'Reversed collection milestones: ' + str(ids))
-    result = dict(date='2026-10-31', review='editorial and static artwork consistency; no live detector certification',
+    result = dict(date='2026-11-01', review='editorial/artwork consistency with 40 intentional experimental rule promotions; no live detector certification',
                   count=len(report), rarities=dict(Counter(r['rarity'] for r in report)),
                   statuses=dict(Counter(r['status'] for r in report)),
-                  unchanged_rule_files=plan['catalog_contract'], preserved_owner_icons=len(plan['preserved_icons']),
+                  pinned_rule_files=plan['catalog_contract'], preserved_owner_icons=len(plan['preserved_icons']),
                   frame_sample_pixels=int(mask.sum()), achievements=sorted(report, key=lambda a: (a['order'], a['id'])))
     output = ROOT / 'test-results/catalog-audit.json'
     output.parent.mkdir(exist_ok=True)
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf8')
     print('PASS', len(report), 'IDs, texts, images and matching frame rarities;', result['rarities'], result['statuses'])
-    print('PASS unchanged rules/revision, preserved owner art and ascending collection milestones')
+    print('PASS pinned rules, unchanged revision, preserved owner art and ascending collection milestones')
     print('Report:', output)
 
 

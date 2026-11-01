@@ -1,5 +1,12 @@
 # Revisione completa degli achievement — 31 ottobre 2026
 
+**Aggiornamento del 1 novembre:** i 40 obiettivi allora non implementati sono
+ora eseguibili e sperimentali: 110 attivi, 93 sperimentali. Le condizioni e
+gli hash dei due XML complementari sono cambiati intenzionalmente, conservando
+ID, punti, rarità, revisione e tutti i testi/asset di questa revisione.
+Vedi [DETECTOR-EXPANSION](DETECTOR-EXPANSION.md). I numeri e l'invarianza delle
+condizioni nel resoconto del 31 ottobre seguente sono riferimenti storici.
+
 Controllati tutti i **110 ID**, confrontando testo effettivamente caricato, requisito, stato del rilevamento, ordine, categoria, soggetto e cornice dell'icona. Corrette 60 intestazioni e 110 descrizioni; tutte le 110 voci hanno ora testi editoriali espliciti. Questo è un controllo editoriale e statico: non certifica nuovi indirizzi di memoria o acquisizioni nel gioco reale.
 
 ## Risultato e criteri
